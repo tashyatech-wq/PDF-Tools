@@ -215,7 +215,7 @@ class _SavedFileTile extends StatelessWidget {
                 icon: const Icon(Icons.ios_share_rounded),
               ),
               IconButton(
-                tooltip: 'Save to Downloads / Documents',
+                tooltip: 'Save PDF',
                 onPressed: onExport,
                 icon: const Icon(Icons.save_alt_rounded),
               ),

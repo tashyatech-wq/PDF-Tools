@@ -437,7 +437,7 @@ class _ScanScreenState extends State<ScanScreen> {
             OutlinedButton.icon(
               onPressed: _exportSaved,
               icon: const Icon(Icons.save_alt_rounded),
-              label: const Text('Save to Downloads / Documents'),
+              label: const Text('Save PDF'),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
