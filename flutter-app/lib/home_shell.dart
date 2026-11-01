@@ -305,11 +305,15 @@ class _SplashScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 72,
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: Image.asset(
-                    'assets/brand/tashya-labs-logo-horizontal.png',
+                child: Center(
+                  child: SizedBox(
                     width: 310,
+                    height: 72,
+                    child: Image.asset(
+                      'assets/brand/tashya-labs-logo-horizontal.png',
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                    ),
                   ),
                 ),
               ),
