@@ -510,24 +510,6 @@ class _HomeScreen extends StatelessWidget {
               onTap: () => onToolTap(tools[index]),
             ),
           ),
-          const SizedBox(height: 12),
-          const Row(
-            children: [
-              Expanded(
-                child: _MiniStat(
-                  value: '0',
-                  label: 'PDFs sent outside your device',
-                ),
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: _MiniStat(
-                  value: '4',
-                  label: 'PDF actions in the app flow',
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -731,50 +713,6 @@ class _ToolCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.65),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              height: 1,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              height: 1.25,
-              color: Theme.of(context).hintColor,
-            ),
-          ),
-        ],
       ),
     );
   }
