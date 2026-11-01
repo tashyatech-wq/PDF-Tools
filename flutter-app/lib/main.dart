@@ -5,6 +5,7 @@ import 'home_shell.dart';
 import 'services/ad_mob_config.dart';
 import 'services/interstitial_ad_service.dart';
 import 'theme.dart';
+import 'widgets/force_update_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,7 @@ class PdfToolkitApp extends StatelessWidget {
       theme: buildAppTheme(brightness: Brightness.light),
       darkTheme: buildAppTheme(brightness: Brightness.dark),
       themeMode: ThemeMode.system,
-      home: const HomeShell(),
+      home: const ForceUpdateGate(child: HomeShell()),
     );
   }
 }

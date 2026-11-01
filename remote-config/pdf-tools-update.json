@@ -1,0 +1,8 @@
+{
+  "force_update": false,
+  "ios_min_version": "1.0.0",
+  "android_min_version": "1.0.0",
+  "ios_store_url": "https://apps.apple.com/app/id0000000000",
+  "android_store_url": "https://play.google.com/store/apps/details?id=in.tashyalabs.pdfToolkit",
+  "message": "Please update PDF Tools to continue."
+}
