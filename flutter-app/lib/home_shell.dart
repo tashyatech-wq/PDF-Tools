@@ -628,7 +628,7 @@ class _TrustMark extends StatelessWidget {
         Text(
           compact
               ? 'Safe & Secure'
-              : 'Safe & Secure • Your PDF stays on device',
+              : 'Safe & Secure • Your files never leave your device',
           style: TextStyle(
             fontSize: compact ? 11 : 11.5,
             fontWeight: FontWeight.w800,
