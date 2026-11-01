@@ -1,0 +1,1581 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#DC2626">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PDF Tools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="application-name" content="PDF Tools by Tashya Labs">
+<meta name="description" content="Merge, split and compress PDFs on device.">
+<link rel="icon" href="./assets/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>PDF Tools by Tashya Labs</title>
+<style>
+  /*
+    Layout concept: a mobile app journey — a focused dashboard first,
+    then one task screen at a time. Each tool owns a signature accent that
+    the app bar, action card and primary button pick up via one --accent token.
+  */
+  :root {
+    --canvas: #F1E4E4;
+    --bg: #FFFBFB;
+    --surface: #FFFFFF;
+    --surface-2: #EDF2F7;
+    --surface-3: #E6EDF5;
+    --line: #E7D9D9;
+    --line-strong: #D8C3C3;
+    --ink: #0F172A;
+    --muted: #475569;
+    --merge: #DC2626;
+    --split: #7C3AED;
+    --compress: #0F9F87;
+    --unlock: #D97706;
+    --accent: var(--merge);
+    --bad: #DC2626;
+    --bad-bg: #FEF2F2;
+    --good-bg: #ECFDF5;
+    --font-display: 'Manrope', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --shadow: 0 1px 2px rgba(15,23,42,.05), 0 10px 28px rgba(15,23,42,.08);
+    --shadow-strong: 0 22px 60px rgba(34,48,73,.20);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #070A10;
+      --bg: #0B111C;
+      --surface: #111A29;
+      --surface-2: #172235;
+      --surface-3: #1E2B3F;
+      --line: #263447;
+      --line-strong: #35455D;
+      --ink: #E7ECF4;
+      --muted: #8E9BB3;
+      --merge: #FF6B6B;
+      --split: #B49BFF;
+      --compress: #35D3BB;
+      --unlock: #F0A94E;
+      --bad: #FF8080;
+      --bad-bg: #2A1414;
+      --good-bg: #0F2A24;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px rgba(0,0,0,.35);
+      --shadow-strong: 0 24px 70px rgba(0,0,0,.48);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #070A10;
+    --bg: #0B111C;
+    --surface: #111A29;
+    --surface-2: #172235;
+    --surface-3: #1E2B3F;
+    --line: #263447;
+    --line-strong: #35455D;
+    --ink: #E7ECF4;
+    --muted: #8E9BB3;
+    --merge: #FF6B6B;
+    --split: #B49BFF;
+    --compress: #35D3BB;
+    --unlock: #F0A94E;
+    --bad: #FF8080;
+    --bad-bg: #2A1414;
+    --good-bg: #0F2A24;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px rgba(0,0,0,.35);
+    --shadow-strong: 0 24px 70px rgba(0,0,0,.48);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--merge) 20%, transparent), transparent 30%),
+      radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--compress) 18%, transparent), transparent 28%),
+      linear-gradient(135deg, var(--canvas), color-mix(in srgb, var(--canvas) 78%, #FFFFFF));
+    color: var(--ink);
+    font-family: var(--font-display);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  #appshell {
+    background: var(--bg);
+    max-width: 440px;
+    margin: 0 auto;
+    height: 100dvh;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    isolation: isolate;
+    animation: shellIn .45s cubic-bezier(.2,.8,.2,1);
+  }
+  #appshell::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 220px;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent 52%),
+      linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, transparent), transparent);
+    pointer-events: none;
+    z-index: -1;
+    transition: background .2s ease;
+  }
+  @keyframes shellIn {
+    from { opacity: 0; transform: translateY(10px) scale(.98); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (min-width: 480px) {
+    body { padding-block: 28px; }
+    #appshell {
+      height: calc(100dvh - 56px);
+      min-height: calc(100% - 56px);
+      max-height: 900px;
+      border-radius: 28px;
+      box-shadow: var(--shadow-strong);
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--surface) 72%, var(--line-strong));
+    }
+    .statusbar { display: flex; }
+  }
+
+  .pad { padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+
+  /* ---------- Simulated device status bar (frame decoration, wide screens only) ---------- */
+  .statusbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: 9px 3px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  .statusbar .icons { display: flex; align-items: center; gap: 5px; color: var(--ink); }
+  .statusbar svg { width: 15px; height: 15px; }
+
+  /* ---------- Top app bar ---------- */
+  .topbar {
+    flex: none;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-block: 14px 13px;
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .topbar.hidden { display: none; }
+  .topbar::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: .7;
+    transition: background .2s ease;
+  }
+  .topbar .badge-icon {
+    flex: none;
+    width: 42px; height: 42px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--accent) 18%, var(--surface)), var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+    color: var(--accent);
+    box-shadow: 0 10px 24px -16px var(--accent);
+    transition: background .2s ease, color .2s ease, transform .3s ease;
+  }
+  .topbar .badge-icon svg { width: 20px; height: 20px; }
+  .topbar .badge-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+  .topbar .badge-icon svg[hidden], .topbar .badge-icon img[hidden] { display: none; }
+  .backbtn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -18px rgba(15,23,42,.45);
+  }
+  .backbtn svg { width: 19px; height: 19px; }
+  .backbtn.show { display: flex; }
+  .topbar .titles { flex: 1 1 auto; min-width: 0; }
+  .topbar .titles .t1, .topbar .titles .t2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar .titles .t1 { font-size: 16.5px; font-weight: 800; letter-spacing: 0; }
+  .topbar .titles .t2 { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .chip {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--ink) 68%, var(--muted));
+    border: 1px solid color-mix(in srgb, var(--compress) 24%, var(--line));
+    background: color-mix(in srgb, var(--surface) 82%, var(--compress));
+    padding: 5px 9px;
+    border-radius: 999px;
+    display: flex; align-items: center; gap: 5px;
+    white-space: nowrap;
+  }
+  .chip .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--compress);
+    flex: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--compress) 25%, transparent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .45; }
+  }
+
+  /* ---------- Scroll area ---------- */
+  main {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  main .screen { padding-block: 18px 26px; }
+
+  .ad-dock {
+    flex: none;
+    padding: 9px max(14px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .ad-dock[hidden] { display: none; }
+  .ad-banner {
+    min-height: 58px;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--merge) 38%, var(--line));
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--merge) 13%, var(--surface)), var(--surface) 58%),
+      radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--split) 14%, transparent), transparent 36%);
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    box-shadow: 0 10px 24px -18px rgba(127,29,29,.48);
+  }
+  .ad-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, var(--merge), color-mix(in srgb, var(--merge) 68%, var(--split)));
+  }
+  .ad-mark svg { width: 18px; height: 18px; }
+  .ad-copy { min-width: 0; }
+  .ad-copy strong {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    line-height: 1.2;
+  }
+  .ad-copy span {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 11.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ad-label {
+    flex: none;
+    border-radius: 6px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #fff;
+    background: color-mix(in srgb, var(--merge) 78%, #111827);
+    text-transform: uppercase;
+  }
+  .ad-action {
+    flex: none;
+    border-radius: 999px;
+    padding: 7px 10px;
+    color: #fff;
+    background: var(--merge);
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--merge) 78%, transparent);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: panelIn .28s cubic-bezier(.2,.8,.2,1); }
+  .panel.exiting { display: block; animation: splashOut .34s cubic-bezier(.4,0,.2,1) forwards; }
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel .sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 14px;
+    max-width: 50ch;
+  }
+
+  .launcher {
+    min-height: calc(100vh - 44px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 62px 4px 34px;
+    position: relative;
+    overflow: hidden;
+    border-radius: inherit;
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--merge) 16%, var(--surface)), var(--surface) 42%, color-mix(in srgb, var(--compress) 8%, var(--surface))),
+      linear-gradient(35deg, transparent 0 58%, color-mix(in srgb, var(--merge) 10%, transparent) 58% 72%, transparent 72%);
+    animation: launcherGlow 1.6s ease-out both;
+  }
+  @media (min-width: 480px) {
+    .launcher { min-height: 720px; }
+  }
+  .launcher::before,
+  .launcher::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    transform: rotate(-16deg);
+    border-radius: 34px;
+  }
+  .launcher::before {
+    width: 360px;
+    height: 128px;
+    top: 66px;
+    right: -158px;
+    background: color-mix(in srgb, var(--merge) 12%, transparent);
+    animation: ribbonDrift 2.4s ease-in-out infinite alternate;
+  }
+  .launcher::after {
+    width: 320px;
+    height: 96px;
+    left: -148px;
+    bottom: 118px;
+    background: color-mix(in srgb, var(--compress) 12%, transparent);
+    animation: ribbonDrift 2.6s ease-in-out infinite alternate-reverse;
+  }
+  .launcher-card {
+    position: relative;
+    z-index: 1;
+    padding: 0 20px;
+    text-align: center;
+  }
+  .launcher-icon {
+    width: 118px;
+    height: 118px;
+    border-radius: 30px;
+    display: block;
+    margin: 0 auto 22px;
+    box-shadow:
+      0 26px 48px -26px rgba(127, 29, 29, .72),
+      0 0 0 12px color-mix(in srgb, var(--surface) 58%, transparent);
+    animation: iconArrive .46s cubic-bezier(.2,.9,.2,1.08) both, iconFloat 2.4s ease-in-out .52s infinite;
+  }
+  .launcher h1 {
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.08;
+    letter-spacing: 0;
+    animation: textRise .38s cubic-bezier(.2,.8,.2,1) .08s both;
+  }
+  .launcher p {
+    margin: 10px auto 0;
+    color: var(--muted);
+    max-width: 28ch;
+    font-size: 14.5px;
+    animation: textRise .38s cubic-bezier(.2,.8,.2,1) .16s both;
+  }
+  .launcher-brand {
+    position: relative;
+    z-index: 1;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    animation: textRise .38s cubic-bezier(.2,.8,.2,1) .28s both;
+  }
+  .launcher-brand span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .launcher-brand img {
+    width: 130px;
+    height: auto;
+    display: block;
+  }
+  .splash-progress {
+    height: 5px;
+    width: 148px;
+    margin: 0 auto;
+    border-radius: 999px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--merge) 13%, var(--surface));
+    position: relative;
+    z-index: 1;
+    animation: textRise .36s cubic-bezier(.2,.8,.2,1) .24s both;
+  }
+  .splash-progress span {
+    display: block;
+    height: 100%;
+    width: 100%;
+    border-radius: inherit;
+    background: var(--merge);
+    transform-origin: left;
+    animation: splashFill 1.4s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  @keyframes splashFill {
+    from { transform: scaleX(.08); opacity: .65; }
+    to { transform: scaleX(1); opacity: 1; }
+  }
+  @keyframes launcherGlow {
+    from { filter: saturate(.86); }
+    to { filter: saturate(1); }
+  }
+  @keyframes ribbonDrift {
+    from { transform: translate3d(0, 0, 0) rotate(-16deg); }
+    to { transform: translate3d(12px, -8px, 0) rotate(-16deg); }
+  }
+  @keyframes iconArrive {
+    from { opacity: .18; transform: translateY(14px) scale(.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes iconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  @keyframes textRise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes splashOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(.985); }
+  }
+
+  .home-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 16px;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--merge) 16%, var(--surface)), var(--surface) 52%),
+      radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--compress) 18%, transparent), transparent 38%);
+    border: 1px solid color-mix(in srgb, var(--merge) 18%, var(--line));
+    box-shadow: var(--shadow);
+  }
+  .app-lockup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .app-lockup .app-symbol {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    box-shadow: 0 14px 28px -18px rgba(15, 23, 42, .6);
+  }
+  .home-hero h1 {
+    margin: 0;
+    font-size: 23px;
+    line-height: 1.12;
+    letter-spacing: 0;
+  }
+  .home-hero p {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 13.5px;
+    max-width: 28ch;
+  }
+  .home-hero .privacy-pill {
+    margin-top: 12px;
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 78%, var(--compress));
+    color: color-mix(in srgb, var(--ink) 76%, var(--compress));
+    border: 1px solid color-mix(in srgb, var(--compress) 22%, var(--line));
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .home-hero .privacy-pill svg { width: 13px; height: 13px; color: var(--compress); }
+  .section-title {
+    margin: 18px 0 9px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+  }
+  .tool-card {
+    appearance: none;
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--tool-color) 18%, var(--line));
+    background: var(--surface);
+    color: var(--ink);
+    font-family: inherit;
+    border-radius: 18px;
+    padding: 14px;
+    cursor: pointer;
+    min-height: 110px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    justify-content: space-between;
+    text-align: left;
+    box-shadow: var(--shadow);
+    transition: transform .16s ease, border-color .16s ease, background .16s ease;
+  }
+  .tool-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--tool-color) 42%, var(--line));
+    background: color-mix(in srgb, var(--tool-color) 5%, var(--surface));
+  }
+  .tool-card .tool-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tool-color);
+    background: color-mix(in srgb, var(--tool-color) 12%, var(--surface));
+  }
+  .tool-card svg { width: 20px; height: 20px; }
+  .tool-card > span:nth-child(2) {
+    width: 100%;
+    padding-right: 14px;
+  }
+  .tool-card strong {
+    display: block;
+    font-size: 14.5px;
+    line-height: 1.2;
+  }
+  .tool-card span {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .tool-card .chev {
+    position: absolute;
+    right: 13px;
+    top: 13px;
+    color: color-mix(in srgb, var(--tool-color) 70%, var(--muted));
+  }
+  .tool-card .tool-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .tool-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 2px 7px;
+    background: color-mix(in srgb, var(--tool-color) 12%, var(--surface));
+    color: color-mix(in srgb, var(--tool-color) 80%, var(--ink));
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .trust-row {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .mini-stat {
+    min-height: 76px;
+    padding: 13px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .mini-stat strong {
+    display: block;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .mini-stat span {
+    display: block;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .dropzone {
+    border: 1.5px dashed color-mix(in srgb, var(--accent) 30%, var(--line-strong));
+    border-radius: 18px;
+    padding: 26px 18px;
+    text-align: center;
+    cursor: pointer;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, var(--accent)), var(--surface)),
+      radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 48%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.65), var(--shadow);
+    transition: border-color .2s ease, background .2s ease, transform .2s ease;
+  }
+  .dropzone:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); transform: translateY(-2px); }
+  .dropzone.drag { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, var(--surface)); transform: scale(1.01); }
+  .dropzone .icon { color: var(--accent); margin-bottom: 8px; transition: color .2s ease, transform .25s ease; }
+  .dropzone .icon svg {
+    width: 34px;
+    height: 34px;
+    filter: drop-shadow(0 10px 14px color-mix(in srgb, var(--accent) 18%, transparent));
+  }
+  .dropzone:hover .icon { transform: translateY(-2px); }
+  .dropzone .main-label { font-weight: 800; font-size: 15px; }
+  .dropzone .sub-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .dropzone input[type="file"] { display: none; }
+
+  .filelist { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    box-shadow: var(--shadow);
+  }
+  .file-row { animation: popIn .22s cubic-bezier(.2,.8,.2,1); }
+  .ftag {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    padding: 3px 6px;
+    border-radius: 7px;
+  }
+  .file-row .fname { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-row .fsize { font-family: var(--font-mono); font-size: 12px; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+  .file-row .ops { display: flex; gap: 4px; flex: none; }
+  .iconbtn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    width: 29px; height: 29px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .iconbtn:hover { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 38%, var(--muted)); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+  .iconbtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .field input[type="number"], .field input[type="password"], .field input[type="text"] {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    width: 100%;
+  }
+  .field input:focus-visible, .iconbtn:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .segmented {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    overflow: hidden;
+    padding: 3px;
+    background: var(--surface-2);
+  }
+  .segmented button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 10px;
+    cursor: pointer;
+    flex: 1 1 0;
+    border-right: none;
+    border-radius: 10px;
+  }
+  .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--accent); box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+
+  .primary {
+    appearance: none;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #111827));
+    color: #fff;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14.5px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    cursor: pointer;
+    width: 100%;
+    box-shadow: 0 14px 26px -14px color-mix(in srgb, var(--accent) 78%, transparent);
+  }
+  .primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+  .primary { transition: filter .15s ease, transform .1s ease, box-shadow .2s ease; }
+  .primary:not(:disabled):hover { filter: brightness(1.07); box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
+  .primary:not(:disabled):active { transform: scale(0.98); }
+
+  .status { display: block; text-align: center; margin-top: 11px; min-height: 18px; }
+  .status .line { font-size: 12.5px; color: var(--muted); font-family: var(--font-mono); }
+  .spin { color: var(--accent); }
+
+  .progress {
+    margin-top: 10px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .progress .fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width .18s ease;
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(6px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .pop-in { animation: popIn .25s cubic-bezier(.2,.8,.2,1); }
+
+  .result {
+    margin-top: 16px;
+    padding: 15px 16px;
+    border-radius: 15px;
+    background: var(--good-bg);
+    border: 1px solid color-mix(in srgb, var(--compress) 25%, transparent);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .result .check {
+    flex: none;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--compress) 20%, transparent);
+    color: var(--compress);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .result .check svg { width: 16px; height: 16px; }
+  .result .metrics { font-size: 13px; color: var(--ink); }
+  .result .metrics .big { font-family: var(--font-mono); font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+
+  .errorcard {
+    margin-top: 16px;
+    padding: 15px 16px;
+    border-radius: 15px;
+    background: var(--bad-bg);
+    border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+    font-size: 13px;
+  }
+
+  .noticecard {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+    color: var(--ink);
+    box-shadow: var(--shadow);
+  }
+  .noticecard strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+  .noticecard p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .ad-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, .48);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .ad-modal.show { display: flex; animation: panelIn .2s ease-out; }
+  .ad-card {
+    width: min(100%, 340px);
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-strong);
+    border: 1px solid color-mix(in srgb, var(--surface) 60%, var(--line-strong));
+  }
+  .ad-visual {
+    min-height: 168px;
+    padding: 18px;
+    background:
+      radial-gradient(circle at 80% 16%, color-mix(in srgb, var(--compress) 26%, transparent), transparent 32%),
+      linear-gradient(145deg, color-mix(in srgb, var(--merge) 20%, var(--surface)), var(--surface) 58%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ad-visual-box {
+    width: 148px;
+    height: 104px;
+    border-radius: 22px;
+    background:
+      linear-gradient(135deg, var(--merge), color-mix(in srgb, var(--merge) 56%, var(--split))),
+      linear-gradient(180deg, rgba(255,255,255,.28), transparent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 24px 46px -26px color-mix(in srgb, var(--merge) 80%, transparent);
+  }
+  .ad-visual-box svg { width: 50px; height: 50px; }
+  .ad-body { padding: 17px 18px 18px; }
+  .ad-body .ad-label { display: inline-flex; margin-bottom: 10px; }
+  .ad-body h2 {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.16;
+    letter-spacing: 0;
+  }
+  .ad-body p {
+    margin: 7px 0 15px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .ad-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 9px;
+    align-items: center;
+  }
+  .ad-cta,
+  .ad-close {
+    appearance: none;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .ad-cta {
+    border-radius: 13px;
+    padding: 12px 14px;
+    color: #fff;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--merge), color-mix(in srgb, var(--merge) 70%, #111827));
+  }
+  .ad-close {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    color: var(--muted);
+    background: var(--surface-2);
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .spin {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div id="appshell">
+
+  <div class="statusbar pad">
+    <span>9:41</span>
+    <span class="icons">
+      <svg viewBox="0 0 20 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 8.5c2-2.5 5-3.5 9-3.5s7 1 9 3.5" stroke-linecap="round"/><path d="M3.5 10.3c1.6-1.7 3.8-2.3 6.5-2.3s4.9.6 6.5 2.3" stroke-linecap="round" opacity=".55"/></svg>
+      <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" stroke-width="1.1"><rect x="1" y="1.5" width="19" height="9" rx="2.2"/><rect x="21.2" y="4" width="1.8" height="4" rx="0.9" fill="currentColor" stroke="none"/><rect x="2.5" y="3" width="13" height="6" rx="1" fill="currentColor" stroke="none"/></svg>
+    </span>
+  </div>
+
+  <header class="topbar hidden pad">
+    <button class="backbtn" id="back-home" type="button" aria-label="Back to home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"/></svg>
+    </button>
+    <div class="badge-icon" id="bar-badge">
+      <img id="bar-icon-home" src="./assets/icons/app-icon-128.png" alt="">
+      <svg id="bar-icon-merge" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="11" height="14" rx="1.5"/><rect x="9" y="7" width="11" height="14" rx="1.5" fill="var(--surface)"/></svg>
+      <svg id="bar-icon-split" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="8" height="18" rx="1.5"/><rect x="13" y="3" width="8" height="18" rx="1.5"/><line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2"/></svg>
+      <svg id="bar-icon-compress" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3 4 7m0 0 4 4M4 7h7"/><path d="M16 21l4-4m0 0-4-4m4 4h-7"/></svg>
+      <svg id="bar-icon-unlock" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7.2-2.4"/></svg>
+    </div>
+    <div class="titles">
+      <div class="t1" id="bar-title">PDF Tools</div>
+      <div class="t2" id="bar-subtitle">Choose what you need</div>
+    </div>
+    <div class="chip"><span class="dot"></span>Secure</div>
+  </header>
+
+  <main>
+    <div class="screen pad">
+      <!-- LAUNCHER -->
+      <section class="panel active" id="panel-launch">
+        <div class="launcher">
+          <div class="launcher-card">
+            <img class="launcher-icon" src="./assets/icons/app-icon-128.png" alt="">
+            <h1>PDF Tools</h1>
+            <p>Safe, secure PDF actions for documents that stay on your device.</p>
+          </div>
+          <div class="splash-progress" aria-label="Loading PDF Tools"><span></span></div>
+          <div class="launcher-brand">
+            <span>by</span>
+            <img src="./assets/brand/tashya-labs-logo-horizontal.png" alt="Tashya Labs">
+          </div>
+        </div>
+      </section>
+
+      <!-- HOME -->
+      <section class="panel" id="panel-home">
+        <div class="home-hero">
+          <div class="app-lockup">
+            <img class="app-symbol" src="./assets/icons/app-icon-128.png" alt="">
+            <div>
+              <h1>PDF Tools</h1>
+              <p>Safe PDF tools. Your files stay on your device.</p>
+            </div>
+          </div>
+          <div class="privacy-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.4-2.8 8.4-7 10-4.2-1.6-7-5.6-7-10V6l7-3Z"/><path d="m9.5 12 1.8 1.8 3.7-4"/></svg>
+            Your PDF never leaves your device
+          </div>
+        </div>
+
+        <div class="section-title">Start</div>
+        <div class="tool-grid">
+          <button class="tool-card" type="button" data-tool="merge" data-title="Merge PDF" data-subtitle="Combine files into one" style="--tool-color: var(--merge);">
+            <span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="11" height="14" rx="1.5"/><rect x="9" y="7" width="11" height="14" rx="1.5" fill="var(--surface)"/></svg></span>
+            <span><strong>Merge PDFs</strong><span>Combine documents in order</span></span>
+            <span class="chev">›</span>
+          </button>
+          <button class="tool-card" type="button" data-tool="split" data-title="Split PDF" data-subtitle="Pull pages apart" style="--tool-color: var(--split);">
+            <span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="8" height="18" rx="1.5"/><rect x="13" y="3" width="8" height="18" rx="1.5"/><line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2"/></svg></span>
+            <span><strong>Split PDF</strong><span>Extract pages or export all</span></span>
+            <span class="chev">›</span>
+          </button>
+          <button class="tool-card" type="button" data-tool="compress" data-title="Compress PDF" data-subtitle="Shrink the file size" style="--tool-color: var(--compress);">
+            <span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3 4 7m0 0 4 4M4 7h7"/><path d="M16 21l4-4m0 0-4-4m4 4h-7"/></svg></span>
+            <span><strong>Compress PDF</strong><span>Reduce file size for uploads</span></span>
+            <span class="chev">›</span>
+          </button>
+          <button class="tool-card" type="button" data-tool="unlock" data-title="Unlock PDF" data-subtitle="Remove a known password" style="--tool-color: var(--unlock);">
+            <span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7.2-2.4"/></svg></span>
+            <span><strong>Unlock PDF</strong><span class="tool-meta">Remove known passwords <span class="tool-badge">Mobile</span></span></span>
+            <span class="chev">›</span>
+          </button>
+        </div>
+
+        <div class="trust-row">
+          <div class="mini-stat"><strong>0</strong><span>PDFs sent outside your device</span></div>
+          <div class="mini-stat"><strong>4</strong><span>PDF actions in the app flow</span></div>
+        </div>
+      </section>
+
+      <!-- MERGE -->
+      <section class="panel" id="panel-merge">
+        <div class="dropzone" id="merge-drop" tabindex="0" role="button" aria-label="Add PDF files to merge">
+          <div class="icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="11" height="14" rx="1.5"/><rect x="9" y="7" width="11" height="14" rx="1.5" fill="var(--surface)"/></svg></div>
+          <div class="main-label">Add PDFs</div>
+          <div class="sub-label">PDF only</div>
+          <input type="file" id="merge-input" accept="application/pdf,.pdf" multiple>
+        </div>
+
+        <div class="filelist" id="merge-filelist"></div>
+
+        <div style="margin-top:18px;">
+          <button class="primary" id="merge-run" disabled>Merge files</button>
+          <span class="status" id="merge-status"></span>
+        </div>
+
+        <div id="merge-result"></div>
+      </section>
+
+      <!-- SPLIT -->
+      <section class="panel" id="panel-split">
+        <div class="dropzone" id="split-drop" tabindex="0" role="button" aria-label="Choose a PDF to split">
+          <div class="icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="8" height="18" rx="1.5"/><rect x="13" y="3" width="8" height="18" rx="1.5"/><line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2"/></svg></div>
+          <div class="main-label" id="split-drop-label">Choose a PDF</div>
+          <div class="sub-label" id="split-drop-sub">One file at a time</div>
+          <input type="file" id="split-input" accept="application/pdf,.pdf">
+        </div>
+
+        <div id="split-controls" style="display:none; margin-top:18px;">
+          <div class="segmented" role="group" aria-label="Split mode">
+            <button type="button" aria-pressed="true" data-mode="range">Page range</button>
+            <button type="button" aria-pressed="false" data-mode="all">Every page</button>
+          </div>
+
+          <div class="row" id="split-range-fields" style="margin-top:14px;">
+            <div class="field" style="flex:1;">
+              <label for="split-from">From page</label>
+              <input type="number" id="split-from" min="1" value="1">
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="split-to">To page</label>
+              <input type="number" id="split-to" min="1" value="1">
+            </div>
+          </div>
+
+          <div style="margin-top:18px;">
+            <button class="primary" id="split-run">Extract pages</button>
+            <span class="status" id="split-status"></span>
+          </div>
+        </div>
+
+        <div id="split-result"></div>
+      </section>
+
+      <!-- COMPRESS -->
+      <section class="panel" id="panel-compress">
+        <div class="dropzone" id="compress-drop" tabindex="0" role="button" aria-label="Choose a PDF to compress">
+          <div class="icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3 4 7m0 0 4 4M4 7h7"/><path d="M16 21l4-4m0 0-4-4m4 4h-7"/></svg></div>
+          <div class="main-label" id="compress-drop-label">Choose a PDF</div>
+          <div class="sub-label">One file at a time</div>
+          <input type="file" id="compress-input" accept="application/pdf,.pdf">
+        </div>
+
+        <div style="margin-top:18px;" id="compress-controls" hidden>
+          <button class="primary" id="compress-run">Compress</button>
+          <span class="status" id="compress-status"></span>
+        </div>
+
+        <div id="compress-result"></div>
+      </section>
+
+      <!-- UNLOCK -->
+      <section class="panel" id="panel-unlock">
+        <div class="dropzone" tabindex="0" role="button" aria-label="Unlock PDF requires the mobile app build">
+          <div class="icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7.2-2.4"/></svg></div>
+          <div class="main-label">Unlock PDF</div>
+          <div class="sub-label">Mobile app engine required</div>
+        </div>
+        <div class="noticecard">
+          <strong>Planned for the native app</strong>
+          <p>Password removal needs a real PDF decryption engine. This web preview shows the flow; the mobile build should wire this to the native PDF library.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <aside class="ad-dock" id="ad-dock" hidden aria-label="Advertisement">
+    <div class="ad-banner">
+      <div class="ad-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/><path d="M8 14h8"/><path d="M8 17h5"/></svg>
+      </div>
+      <div class="ad-copy">
+        <strong><span class="ad-label">Ad</span> PDF Scanner Pro</strong>
+        <span id="ad-context">Scan, sign and organize documents faster.</span>
+      </div>
+      <span class="ad-action">Install</span>
+    </div>
+  </aside>
+
+</div>
+
+<div class="ad-modal" id="success-ad" role="dialog" aria-modal="true" aria-labelledby="success-ad-title" aria-hidden="true">
+  <div class="ad-card">
+    <div class="ad-visual" aria-hidden="true">
+      <div class="ad-visual-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/><path d="M9 15h6"/><path d="M9 18h3"/></svg>
+      </div>
+    </div>
+    <div class="ad-body">
+      <span class="ad-label">Ad</span>
+      <h2 id="success-ad-title">Your PDF is ready</h2>
+      <p>A sponsored message can appear here after a successful export, never before file selection or during processing.</p>
+      <div class="ad-actions">
+        <button class="ad-cta" type="button" id="success-ad-cta">Continue</button>
+        <button class="ad-close" type="button" id="success-ad-close" aria-label="Close advertisement">×</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script>
+(function () {
+  'use strict';
+
+  var downloadsCap = null;
+  if (window.claude && window.claude.use) {
+    window.claude.use('downloads').then(function (d) { downloadsCap = d; }).catch(function () {});
+  }
+
+  function formatBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  async function saveFile(filename, blob) {
+    if (!downloadsCap && window.claude && window.claude.use) {
+      try { downloadsCap = await window.claude.use('downloads'); } catch (e) {}
+    }
+    if (!downloadsCap) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 1000);
+      return { ok: true };
+    }
+    try {
+      await downloadsCap.save({ filename: filename, data: blob });
+      return { ok: true };
+    } catch (err) {
+      if (err && err.code === 'declined') return { ok: false, message: 'Save was dismissed.' };
+      return { ok: false, message: (err && err.message) || 'Could not save the file.' };
+    }
+  }
+
+  function el(tag, attrs, children) {
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'class') e.className = attrs[k];
+      else if (k === 'html') e.innerHTML = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    (children || []).forEach(function (c) { e.appendChild(c); });
+    return e;
+  }
+
+  function checkIcon() {
+    var box = el('div', { class: 'check' }, []);
+    box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
+    return box;
+  }
+
+  // ---------- App bar + screen navigation ----------
+  var toolCards = document.querySelectorAll('.tool-card');
+  var backHome = document.getElementById('back-home');
+  var topbar = document.querySelector('.topbar');
+  var barTitle = document.getElementById('bar-title');
+  var barSubtitle = document.getElementById('bar-subtitle');
+  var adDock = document.getElementById('ad-dock');
+  var adContext = document.getElementById('ad-context');
+  var successAd = document.getElementById('success-ad');
+  var successAdClose = document.getElementById('success-ad-close');
+  var successAdCta = document.getElementById('success-ad-cta');
+  var completedExports = 0;
+  var lastInterstitialAt = 0;
+  var adCopyByScreen = {
+    home: 'Scan, sign and organize documents faster.',
+    merge: 'Create clean document bundles in seconds.',
+    split: 'Extract, save and share pages faster.',
+    compress: 'Shrink files before sharing or uploading.',
+    unlock: 'Manage protected documents with secure tools.'
+  };
+
+  function showScreen(tool, trigger) {
+    var isLaunch = tool === 'launch';
+    var isHome = tool === 'home';
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('panel-' + tool).classList.add('active');
+    topbar.classList.toggle('hidden', isLaunch);
+    document.querySelectorAll('.badge-icon svg, .badge-icon img').forEach(function (s) { s.toggleAttribute('hidden', s.id !== 'bar-icon-' + (isLaunch ? 'home' : tool)); });
+    backHome.classList.toggle('show', !isHome && !isLaunch);
+    barTitle.textContent = (isHome || isLaunch) ? 'PDF Tools' : trigger.dataset.title;
+    barSubtitle.textContent = (isHome || isLaunch) ? 'Choose what you need' : trigger.dataset.subtitle;
+    document.documentElement.style.setProperty('--accent', (isHome || isLaunch) ? 'var(--merge)' : 'var(--' + tool + ')');
+    adDock.hidden = isLaunch;
+    adContext.textContent = adCopyByScreen[tool] || adCopyByScreen.home;
+    document.querySelector('main').scrollTop = 0;
+  }
+
+  function closeSuccessAd() {
+    successAd.classList.remove('show');
+    successAd.setAttribute('aria-hidden', 'true');
+  }
+
+  function showSuccessAd() {
+    completedExports += 1;
+    var now = Date.now();
+    if (completedExports < 1 || now - lastInterstitialAt < 90000) return;
+    lastInterstitialAt = now;
+    successAd.classList.add('show');
+    successAd.setAttribute('aria-hidden', 'false');
+    successAdClose.focus({ preventScroll: true });
+  }
+
+  successAdClose.addEventListener('click', closeSuccessAd);
+  successAdCta.addEventListener('click', closeSuccessAd);
+  successAd.addEventListener('click', function (event) {
+    if (event.target === successAd) closeSuccessAd();
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && successAd.classList.contains('show')) closeSuccessAd();
+  });
+
+  toolCards.forEach(function (btn) {
+    btn.addEventListener('click', function () { showScreen(btn.dataset.tool, btn); });
+  });
+  backHome.addEventListener('click', function () { showScreen('home', backHome); });
+  window.setTimeout(function () {
+    var launchPanel = document.getElementById('panel-launch');
+    launchPanel.classList.add('exiting');
+    window.setTimeout(function () {
+      launchPanel.classList.remove('exiting');
+      showScreen('home', document.body);
+    }, 320);
+  }, 1900);
+
+  function wireDropzone(zoneId, inputId, onFiles) {
+    var zone = document.getElementById(zoneId);
+    var input = document.getElementById(inputId);
+    zone.addEventListener('click', function () { input.click(); });
+    zone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+    input.addEventListener('change', function () { if (input.files.length) onFiles(input.files); input.value = ''; });
+    ['dragover', 'dragenter'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('drag'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('drag'); });
+    });
+    zone.addEventListener('drop', function (e) {
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length) onFiles(files);
+    });
+  }
+
+  // ================= MERGE =================
+  (function () {
+    var files = []; // {id, name, size, bytes}
+    var listEl = document.getElementById('merge-filelist');
+    var runBtn = document.getElementById('merge-run');
+    var statusEl = document.getElementById('merge-status');
+    var resultEl = document.getElementById('merge-result');
+    var seq = 0;
+
+    function render() {
+      listEl.innerHTML = '';
+      files.forEach(function (f, i) {
+        var row = el('div', { class: 'file-row' }, [
+          el('span', { class: 'ftag' }, [document.createTextNode('PDF')]),
+          el('span', { class: 'fname' }, [document.createTextNode(f.name)]),
+          el('span', { class: 'fsize' }, [document.createTextNode(formatBytes(f.size))]),
+          el('span', { class: 'ops' }, [
+            (function () { var b = el('button', { class: 'iconbtn', title: 'Move up', type: 'button' }, [document.createTextNode('↑')]); b.disabled = i === 0; b.onclick = function () { move(i, -1); }; return b; })(),
+            (function () { var b = el('button', { class: 'iconbtn', title: 'Move down', type: 'button' }, [document.createTextNode('↓')]); b.disabled = i === files.length - 1; b.onclick = function () { move(i, 1); }; return b; })(),
+            (function () { var b = el('button', { class: 'iconbtn', title: 'Remove', type: 'button' }, [document.createTextNode('×')]); b.onclick = function () { remove(i); }; return b; })()
+          ])
+        ]);
+        listEl.appendChild(row);
+      });
+      runBtn.disabled = files.length < 2;
+      resultEl.innerHTML = '';
+      statusEl.textContent = files.length === 1 ? 'Add one more file to merge.' : '';
+    }
+    function move(i, dir) {
+      var j = i + dir;
+      if (j < 0 || j >= files.length) return;
+      var t = files[i]; files[i] = files[j]; files[j] = t;
+      render();
+    }
+    function remove(i) { files.splice(i, 1); render(); }
+
+    wireDropzone('merge-drop', 'merge-input', function (fileList) {
+      Array.prototype.forEach.call(fileList, function (f) {
+        var id = seq++;
+        f.arrayBuffer().then(function (buf) {
+          files.push({ id: id, name: f.name, size: f.size, bytes: new Uint8Array(buf) });
+          render();
+        });
+      });
+    });
+
+    runBtn.addEventListener('click', async function () {
+      runBtn.disabled = true;
+      statusEl.innerHTML = '<span class="spin"></span> Merging ' + files.length + ' files…';
+      resultEl.innerHTML = '';
+      try {
+        var merged = await PDFLib.PDFDocument.create();
+        for (var i = 0; i < files.length; i++) {
+          var src = await PDFLib.PDFDocument.load(files[i].bytes);
+          var pages = await merged.copyPages(src, src.getPageIndices());
+          pages.forEach(function (p) { merged.addPage(p); });
+        }
+        var bytes = await merged.save();
+        var blob = new Blob([bytes], { type: 'application/pdf' });
+        statusEl.textContent = '';
+        var saveRes = await saveFile('merged.pdf', blob);
+        if (saveRes.ok) {
+          resultEl.innerHTML = '';
+          resultEl.appendChild(el('div', { class: 'result pop-in' }, [
+            checkIcon(),
+            el('div', { class: 'metrics' }, [document.createTextNode('Merged into one PDF — '), el('span', { class: 'big' }, [document.createTextNode(formatBytes(bytes.length) + ', ' + merged.getPageCount() + ' pages')])])
+          ]));
+          showSuccessAd();
+        } else {
+          resultEl.innerHTML = '';
+          resultEl.appendChild(el('div', { class: 'errorcard pop-in' }, [document.createTextNode(saveRes.message)]));
+        }
+      } catch (err) {
+        resultEl.innerHTML = '';
+        resultEl.appendChild(el('div', { class: 'errorcard pop-in' }, [document.createTextNode('Could not merge these files: ' + (err.message || err))]));
+      }
+      runBtn.disabled = files.length < 2;
+    });
+
+    render();
+  })();
+
+  // ================= SPLIT =================
+  (function () {
+    var current = null; // {name, size, bytes, pageCount}
+    var mode = 'range';
+    var dropLabel = document.getElementById('split-drop-label');
+    var dropSub = document.getElementById('split-drop-sub');
+    var controls = document.getElementById('split-controls');
+    var fromEl = document.getElementById('split-from');
+    var toEl = document.getElementById('split-to');
+    var runBtn = document.getElementById('split-run');
+    var statusEl = document.getElementById('split-status');
+    var resultEl = document.getElementById('split-result');
+    var rangeFields = document.getElementById('split-range-fields');
+
+    document.querySelectorAll('#panel-split .segmented button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('#panel-split .segmented button').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+        b.setAttribute('aria-pressed', 'true');
+        mode = b.dataset.mode;
+        rangeFields.style.display = mode === 'range' ? 'flex' : 'none';
+        runBtn.textContent = mode === 'range' ? 'Extract pages' : 'Split every page';
+      });
+    });
+
+    wireDropzone('split-drop', 'split-input', async function (fileList) {
+      var f = fileList[0];
+      var buf = await f.arrayBuffer();
+      var bytes = new Uint8Array(buf);
+      var doc = await PDFLib.PDFDocument.load(bytes);
+      current = { name: f.name, size: f.size, bytes: bytes, pageCount: doc.getPageCount() };
+      dropLabel.textContent = f.name;
+      dropSub.textContent = formatBytes(f.size) + ' · ' + current.pageCount + ' pages';
+      fromEl.value = 1; fromEl.max = current.pageCount;
+      toEl.value = current.pageCount; toEl.max = current.pageCount;
+      controls.style.display = 'block';
+      resultEl.innerHTML = '';
+    });
+
+    runBtn.addEventListener('click', async function () {
+      if (!current) return;
+      runBtn.disabled = true;
+      resultEl.innerHTML = '';
+      try {
+        if (mode === 'range') {
+          var from = Math.max(1, Math.min(current.pageCount, parseInt(fromEl.value || '1', 10)));
+          var to = Math.max(from, Math.min(current.pageCount, parseInt(toEl.value || String(current.pageCount), 10)));
+          statusEl.innerHTML = '<span class="spin"></span> Extracting pages ' + from + '–' + to + '…';
+          var idx = [];
+          for (var p = from - 1; p <= to - 1; p++) idx.push(p);
+          var out = await PDFLib.PDFDocument.create();
+          var src = await PDFLib.PDFDocument.load(current.bytes);
+          var pages = await out.copyPages(src, idx);
+          pages.forEach(function (pg) { out.addPage(pg); });
+          var bytes = await out.save();
+          statusEl.textContent = '';
+          var saveRes = await saveFile('pages-' + from + '-' + to + '.pdf', new Blob([bytes], { type: 'application/pdf' }));
+          resultEl.innerHTML = '';
+          if (saveRes.ok) {
+            resultEl.appendChild(el('div', { class: 'result pop-in' }, [checkIcon(), el('div', { class: 'metrics' }, [document.createTextNode(idx.length + ' pages extracted — '), el('span', { class: 'big' }, [document.createTextNode(formatBytes(bytes.length))])])]));
+            showSuccessAd();
+          } else {
+            resultEl.appendChild(el('div', { class: 'errorcard pop-in' }, [document.createTextNode(saveRes.message)]));
+          }
+        } else {
+          var fillEl = el('div', { class: 'fill' }, []);
+          var barEl = el('div', { class: 'progress' }, [fillEl]);
+          resultEl.appendChild(barEl);
+          var zip = new JSZip();
+          var srcAll = await PDFLib.PDFDocument.load(current.bytes);
+          for (var i = 0; i < current.pageCount; i++) {
+            statusEl.innerHTML = '<span class="spin"></span> Splitting page ' + (i + 1) + ' of ' + current.pageCount + '…';
+            fillEl.style.width = Math.round(((i + 1) / current.pageCount) * 90) + '%';
+            var single = await PDFLib.PDFDocument.create();
+            var cp = await single.copyPages(srcAll, [i]);
+            single.addPage(cp[0]);
+            var sBytes = await single.save();
+            zip.file('page-' + (i + 1) + '.pdf', sBytes);
+          }
+          statusEl.innerHTML = '<span class="spin"></span> Packing ' + current.pageCount + ' files…';
+          fillEl.style.width = '97%';
+          var zipBlob = await zip.generateAsync({ type: 'blob' });
+          fillEl.style.width = '100%';
+          statusEl.textContent = '';
+          var saveRes2 = await saveFile('split-pages.zip', zipBlob);
+          resultEl.innerHTML = '';
+          if (saveRes2.ok) {
+            resultEl.appendChild(el('div', { class: 'result pop-in' }, [checkIcon(), el('div', { class: 'metrics' }, [document.createTextNode(current.pageCount + ' files zipped — '), el('span', { class: 'big' }, [document.createTextNode(formatBytes(zipBlob.size))])])]));
+            showSuccessAd();
+          } else {
+            resultEl.appendChild(el('div', { class: 'errorcard pop-in' }, [document.createTextNode(saveRes2.message)]));
+          }
+        }
+      } catch (err) {
+        resultEl.innerHTML = '';
+        resultEl.appendChild(el('div', { class: 'errorcard pop-in' }, [document.createTextNode('Could not split this file: ' + (err.message || err))]));
+      }
+      statusEl.textContent = '';
+      runBtn.disabled = false;
+    });
+  })();
+
+  // ================= COMPRESS =================
+  (function () {
+    var current = null;
+    var dropLabel = document.getElementById('compress-drop-label');
+    var controls = document.getElementById('compress-controls');
+    var runBtn = document.getElementById('compress-run');
+    var statusEl = document.getElementById('compress-status');
+    var resultEl = document.getElementById('compress-result');
+
+    wireDropzone('compress-drop', 'compress-input', async function (fileList) {
+      var f = fileList[0];
+      var buf = await f.arrayBuffer();
+      current = { name: f.name, size: f.size, bytes: new Uint8Array(buf) };
+      dropLabel.textContent = f.name + '  ·  ' + formatBytes(f.size);
+      controls.hidden = false;
+      resultEl.innerHTML = '';
+    });
+
+    runBtn.addEventListener('click', async function () {
+      if (!current) return;
+      runBtn.disabled = true;
+      statusEl.innerHTML = '<span class="spin"></span> Compressing…';
+      resultEl.innerHTML = '';
+      try {
+        var doc = await PDFLib.PDFDocument.load(current.bytes, { updateMetadata: false });
+        doc.setProducer('');
+        doc.setCreator('');
+        doc.setSubject('');
+        doc.setKeywords([]);
+        var bytes = await doc.save({ useObjectStreams: true });
+        statusEl.textContent = '';
+        var saveRes = await saveFile(current.name.replace(/\.pdf$/i, '') + '-compressed.pdf', new Blob([bytes], { type: 'application/pdf' }));
+        resultEl.innerHTML = '';
+        if (saveRes.ok) {
+          var delta = current.size - bytes.length;
+          var pct = ((delta / current.size) * 100).toFixed(1);
+          var msg = delta > 0
+            ? pct + '% smaller'
+            : 'already tightly packed — no further reduction found';
+          resultEl.appendChild(el('div', { class: 'result pop-in' }, [
+            checkIcon(),
+            el('div', { class: 'metrics' }, [
+              document.createTextNode(formatBytes(current.size) + ' → '),
+              el('span', { class: 'big' }, [document.createTextNode(formatBytes(bytes.length))]),
+              document.createTextNode('  — ' + msg)
+            ])
+          ]));
+          showSuccessAd();
+        } else {
+          resultEl.appendChild(el('div', { class: 'errorcard pop-in' }, [document.createTextNode(saveRes.message)]));
+        }
+      } catch (err) {
+        resultEl.innerHTML = '';
+        resultEl.appendChild(el('div', { class: 'errorcard pop-in' }, [document.createTextNode('Could not compress this file: ' + (err.message || err))]));
+      }
+      runBtn.disabled = false;
+    });
+  })();
+
+})();
+</script>

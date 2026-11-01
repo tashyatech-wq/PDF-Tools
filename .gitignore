@@ -1,0 +1,37 @@
+.DS_Store
+*.log
+*.tmp
+
+# Dart / Flutter generated files
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/coverage/
+
+# Native generated files
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/Pods/
+**/DerivedData/
+
+# IDE and local machine files
+*.iml
+.idea/
+.vscode/
+*.xcuserstate
+*.xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Signing and secrets
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
