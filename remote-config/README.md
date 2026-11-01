@@ -1,6 +1,8 @@
 # PDF Tools Remote Update Config
 
-The app checks `pdf-tools-update.json` on launch.
+The app checks this public URL on launch:
+
+`https://cdn.jsdelivr.net/gh/tashyatech-wq/PDF-Tools@main/remote-config/pdf-tools-update.json`
 
 To force old versions to update:
 

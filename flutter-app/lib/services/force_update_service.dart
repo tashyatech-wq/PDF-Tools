@@ -25,7 +25,7 @@ class ForceUpdateService {
   ForceUpdateService._();
 
   static const configUrl =
-      'https://raw.githubusercontent.com/tashyatech-wq/PDF-Tools/main/remote-config/pdf-tools-update.json';
+      'https://cdn.jsdelivr.net/gh/tashyatech-wq/PDF-Tools@main/remote-config/pdf-tools-update.json';
 
   static Future<ForceUpdateDecision> check() async {
     final packageInfo = await PackageInfo.fromPlatform();
