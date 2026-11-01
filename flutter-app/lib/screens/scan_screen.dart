@@ -39,7 +39,10 @@ class _ScanScreenState extends State<ScanScreen> {
       if (!mounted) return;
 
       if (paths == null || paths.isEmpty) {
-        setState(() => _working = false);
+        setState(() {
+          _working = false;
+          _error = null;
+        });
         return;
       }
 
@@ -67,9 +70,7 @@ class _ScanScreenState extends State<ScanScreen> {
       if (!mounted) return;
       setState(() {
         _working = false;
-        _error = e.code == 'permission_denied'
-            ? 'Camera permission is needed to scan documents.'
-            : 'The scanner could not create a PDF. Please try again.';
+        _error = _scannerErrorMessage(e);
       });
     } catch (e) {
       if (!mounted) return;
@@ -98,6 +99,19 @@ class _ScanScreenState extends State<ScanScreen> {
   String _timestamp() {
     final raw = DateTime.now().toIso8601String();
     return raw.replaceAll(RegExp(r'[:.]'), '-');
+  }
+
+  String _scannerErrorMessage(CunningDocumentScannerException e) {
+    final message = e.message.trim();
+    return switch (e.code) {
+      'permission_denied' => 'Camera permission is needed. Open app settings, allow Camera, then try again.',
+      'ALREADY_ACTIVE' =>
+        'A scan is already open. Close the scanner and try again.',
+      'NO_ACTIVITY' || 'NO_CONTEXT' => 'The scanner was interrupted. Close and reopen the app, then try again.',
+      'ERROR' when message.isNotEmpty => 'Scanner error: $message',
+      _ when message.isNotEmpty => 'Scanner error: $message',
+      _ => 'The scanner could not create a PDF. Please try again.',
+    };
   }
 
   @override
