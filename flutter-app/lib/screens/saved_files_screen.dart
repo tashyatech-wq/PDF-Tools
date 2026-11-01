@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/save_file.dart';
+import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 
 class SavedFilesScreen extends StatefulWidget {
@@ -90,19 +91,25 @@ class _SavedFilesScreenState extends State<SavedFilesScreen> {
                     ],
                   ),
                 ),
+                const NativeSavedFilesAd(),
               ],
             ),
           );
         }
 
+        final adIndex = files.length > 1 ? 1 : files.length;
         return RefreshIndicator(
           onRefresh: () async => _reload(),
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 26),
-            itemCount: files.length,
+            itemCount: files.length + 1,
             separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
-              final file = files[index];
+              if (index == adIndex) {
+                return const NativeSavedFilesAd();
+              }
+              final fileIndex = index > adIndex ? index - 1 : index;
+              final file = files[fileIndex];
               return _SavedFileTile(
                 file: file,
                 onShare: () => shareSavedPdf(file),

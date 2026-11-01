@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
+import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 
 class _PickedFile {
@@ -92,6 +93,7 @@ class _MergeScreenState extends State<MergeScreen> {
             sublabel: 'PDF only',
             onTap: _addFiles,
           ),
+          const NativeToolAd(),
           if (_files.isNotEmpty) ...[
             const SizedBox(height: 14),
             ...List.generate(_files.length, (i) {

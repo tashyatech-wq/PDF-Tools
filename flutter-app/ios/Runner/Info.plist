@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-7630945652842088~3050119918</string>
 	<key>CFBundleDisplayName</key>
 	<string>PDF Tools</string>
 	<key>CFBundleExecutable</key>

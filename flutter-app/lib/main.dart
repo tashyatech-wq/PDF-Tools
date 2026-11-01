@@ -3,16 +3,17 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'home_shell.dart';
 import 'services/ad_mob_config.dart';
+import 'services/app_open_ad_service.dart';
 import 'services/interstitial_ad_service.dart';
 import 'theme.dart';
 import 'widgets/force_update_gate.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (AdMobConfig.isSupportedPlatform) {
-    MobileAds.instance.initialize().then((_) {
-      InterstitialAdService.instance.load();
-    });
+    await MobileAds.instance.initialize();
+    AppOpenAdService.instance.start();
+    InterstitialAdService.instance.load();
   }
   runApp(const PdfToolkitApp());
 }

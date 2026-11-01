@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
+import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 
 /// Unlike the web prototype (pdf-lib cannot decrypt real PDF encryption),
@@ -92,6 +93,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
                 : formatBytes(_bytes!.length),
             onTap: _pick,
           ),
+          const NativeToolAd(),
           if (_bytes != null) ...[
             const SizedBox(height: 18),
             TextField(

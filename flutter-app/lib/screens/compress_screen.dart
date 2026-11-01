@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
+import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 
 class CompressScreen extends StatefulWidget {
@@ -116,6 +117,7 @@ class _CompressScreenState extends State<CompressScreen> {
                 : formatBytes(_bytes!.length),
             onTap: _pick,
           ),
+          const NativeToolAd(),
           if (_bytes != null) ...[
             const SizedBox(height: 18),
             SegmentedButton<PdfCompressionMode>(
