@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:cunning_document_scanner/cunning_document_scanner.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart'
     as mlkit;
 
@@ -27,10 +27,15 @@ class _ScanResult {
 }
 
 class _ScanScreenState extends State<ScanScreen> {
+  static const MethodChannel _permissionChannel = MethodChannel(
+    'pdf_tools/permissions',
+  );
+
   bool _working = false;
   String? _error;
   SavedPdfFile? _saved;
   int? _lastPageCount;
+  bool _cameraSettingsNeeded = false;
 
   Future<void> _scan() async {
     if (_working) return;
@@ -39,9 +44,21 @@ class _ScanScreenState extends State<ScanScreen> {
       _error = null;
       _saved = null;
       _lastPageCount = null;
+      _cameraSettingsNeeded = false;
     });
 
     try {
+      final hasCameraPermission = await _ensureCameraPermission();
+      if (!hasCameraPermission) {
+        if (!mounted) return;
+        setState(() {
+          _working = false;
+          _cameraSettingsNeeded = true;
+          _error = 'Camera permission is off. Allow Camera for PDF Tools, then try Scan to PDF again.';
+        });
+        return;
+      }
+
       final scan = Platform.isAndroid
           ? await _scanWithAndroidFallback()
           : await _scanWithNativeScanner();
@@ -78,13 +95,35 @@ class _ScanScreenState extends State<ScanScreen> {
       setState(() {
         _working = false;
         _error = _scannerErrorMessage(e);
+        _cameraSettingsNeeded = e.code == 'permission_denied';
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _working = false;
         _error = _generalScannerError(e);
+        _cameraSettingsNeeded = _isCameraPermissionError(e);
       });
+    }
+  }
+
+  Future<bool> _ensureCameraPermission() async {
+    if (!Platform.isAndroid) return true;
+
+    try {
+      return await _permissionChannel.invokeMethod<bool>('requestCamera') ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  Future<void> _openAppSettings() async {
+    try {
+      await _permissionChannel.invokeMethod<bool>('openAppSettings');
+    } on PlatformException {
+      // Settings is a recovery path. If Android cannot open it, keep the
+      // visible error message in place and let the user retry.
     }
   }
 
@@ -259,6 +298,9 @@ class _ScanScreenState extends State<ScanScreen> {
 
   String _generalScannerError(Object error) {
     final message = error.toString();
+    if (_isCameraPermissionError(error)) {
+      return 'Camera permission is off. Allow Camera for PDF Tools, then try Scan to PDF again.';
+    }
     if (Platform.isAndroid &&
         (message.contains('Failed to start document scanner') ||
             message.contains('DocumentScanner'))) {
@@ -268,6 +310,12 @@ class _ScanScreenState extends State<ScanScreen> {
       return 'Scan cancelled.';
     }
     return 'The scanner could not create a PDF. Please try again.';
+  }
+
+  bool _isCameraPermissionError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('permission') ||
+        message.contains('camera') && message.contains('denied');
   }
 
   @override
@@ -317,7 +365,17 @@ class _ScanScreenState extends State<ScanScreen> {
               label: const Text('Share PDF'),
             ),
           ],
-          if (_error != null) ErrorCard(message: _error!),
+          if (_error != null) ...[
+            ErrorCard(message: _error!),
+            if (_cameraSettingsNeeded) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _openAppSettings,
+                icon: const Icon(Icons.settings_rounded),
+                label: const Text('Open app settings'),
+              ),
+            ],
+          ],
         ],
       ),
     );
