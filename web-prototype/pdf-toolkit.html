@@ -424,20 +424,15 @@
     position: relative;
     z-index: 1;
     margin-top: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
+    width: 100%;
+    height: 56px;
+    display: grid;
+    place-items: center;
     animation: textRise .38s cubic-bezier(.2,.8,.2,1) .28s both;
   }
-  .launcher-brand span {
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 800;
-  }
   .launcher-brand img {
-    width: 172px;
+    width: min(240px, 78vw);
+    max-height: 56px;
     height: auto;
     display: block;
   }
@@ -1009,7 +1004,6 @@
           </div>
           <div class="splash-progress" aria-label="Loading PDF Tools"><span></span></div>
           <div class="launcher-brand">
-            <span>by</span>
             <img src="./assets/brand/tashya-labs-logo-horizontal.png" alt="Tashya Labs">
           </div>
         </div>

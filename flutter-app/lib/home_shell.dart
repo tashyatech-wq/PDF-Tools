@@ -302,24 +302,16 @@ class _SplashScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 26),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'by',
-                    style: TextStyle(
-                      color: Theme.of(context).hintColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Image.asset(
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: Image.asset(
                     'assets/brand/tashya-labs-logo-horizontal.png',
-                    width: 172,
-                    fit: BoxFit.contain,
+                    width: 240,
                   ),
-                ],
+                ),
               ),
             ],
           ),
