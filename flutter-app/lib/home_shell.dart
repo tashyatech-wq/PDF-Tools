@@ -399,33 +399,7 @@ class _TopBar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.compress.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: AppColors.compress.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.circle, size: 8, color: AppColors.compress),
-                      const SizedBox(width: 5),
-                      const Text(
-                        'SECURE',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const _TrustMark(compact: true),
               ],
             ),
             const SizedBox(height: 11),
@@ -627,37 +601,41 @@ class _HomeHero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-            decoration: BoxDecoration(
-              color: AppColors.compress.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: AppColors.compress.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.verified_user_outlined,
-                  size: 14,
-                  color: AppColors.compress,
-                ),
-                const SizedBox(width: 7),
-                const Text(
-                  'YOUR PDF NEVER LEAVES YOUR DEVICE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const _TrustMark(),
         ],
       ),
+    );
+  }
+}
+
+class _TrustMark extends StatelessWidget {
+  const _TrustMark({this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppColors.compress;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.verified_user_rounded,
+          size: compact ? 15 : 16,
+          color: color,
+        ),
+        SizedBox(width: compact ? 4 : 7),
+        Text(
+          compact
+              ? 'Safe & Secure'
+              : 'Safe & Secure • Your PDF stays on device',
+          style: TextStyle(
+            fontSize: compact ? 11 : 11.5,
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).hintColor,
+          ),
+        ),
+      ],
     );
   }
 }
