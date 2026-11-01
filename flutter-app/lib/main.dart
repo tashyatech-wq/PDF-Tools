@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'home_shell.dart';
@@ -10,6 +11,7 @@ import 'widgets/force_update_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   if (AdMobConfig.isSupportedPlatform) {
     await MobileAds.instance.initialize();
     AppOpenAdService.instance.start();

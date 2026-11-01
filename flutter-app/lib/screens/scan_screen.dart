@@ -42,7 +42,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
     try {
       final scan = Platform.isAndroid
-          ? await _scanWithAndroidMlKit()
+          ? await _scanWithAndroidFallback()
           : await _scanWithNativeScanner();
       if (!mounted) return;
 
@@ -104,6 +104,14 @@ class _ScanScreenState extends State<ScanScreen> {
       );
     }
     return _ScanResult(Uint8List.fromList(bytes));
+  }
+
+  Future<_ScanResult?> _scanWithAndroidFallback() async {
+    try {
+      return await _scanWithAndroidMlKit();
+    } catch (_) {
+      return _scanWithNativeScanner();
+    }
   }
 
   Future<_ScanResult?> _scanWithAndroidMlKit() async {
