@@ -8,6 +8,8 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-7630945652842088~3050119918</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used to scan documents into PDF files.</string>
 	<key>CFBundleDisplayName</key>
 	<string>PDF Tools</string>
 	<key>CFBundleExecutable</key>

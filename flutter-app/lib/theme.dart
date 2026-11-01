@@ -11,6 +11,7 @@ class AppColors {
   static const offWhite = Color(0xFFFFFBFB);
 
   static const merge = Color(0xFFDC2626); // PDF red
+  static const scan = Color(0xFF2563EB); // scanner blue
   static const split = Color(0xFF7C3AED); // purple
   static const compress = Color(0xFF0D9488); // teal
   static const unlock = Color(0xFFB45309); // amber

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/compress_screen.dart';
 import 'screens/merge_screen.dart';
+import 'screens/scan_screen.dart';
 import 'screens/saved_files_screen.dart';
 import 'screens/split_screen.dart';
 import 'screens/unlock_screen.dart';
@@ -50,6 +51,17 @@ class _HomeShellState extends State<HomeShell> {
   Timer? _splashTimer;
 
   late final List<_Tool> _tools = [
+    _Tool(
+      id: 'scan',
+      title: 'Scan to PDF',
+      shortTitle: 'Scan PDF',
+      subtitle: 'Camera to PDF',
+      homeSubtitle: 'Capture paper as PDF',
+      icon: Icons.document_scanner_rounded,
+      color: AppColors.scan,
+      screen: const ScanScreen(),
+      badge: 'New',
+    ),
     _Tool(
       id: 'merge',
       title: 'Merge PDF',

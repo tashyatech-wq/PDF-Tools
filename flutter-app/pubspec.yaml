@@ -43,6 +43,7 @@ dependencies:
   http: ^1.6.0
   package_info_plus: ^10.2.2
   url_launcher: ^6.3.3
+  cunning_document_scanner: ^3.0.4
 dev_dependencies:
   flutter_test:
     sdk: flutter
