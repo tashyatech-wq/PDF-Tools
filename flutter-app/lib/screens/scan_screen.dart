@@ -7,6 +7,7 @@ import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart
     as mlkit;
 
 import '../services/interstitial_ad_service.dart';
+import '../services/pdf_service.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
@@ -89,7 +90,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Future<_ScanResult?> _scanWithNativeScanner() async {
     final paths = await CunningDocumentScanner.getPictures(
-      asPdf: true,
+      asPdf: false,
       scannerSource: ScannerSource.camera,
       androidScannerMode: AndroidScannerMode.full,
       noOfPages: 50,
@@ -97,13 +98,22 @@ class _ScanScreenState extends State<ScanScreen> {
 
     if (paths == null || paths.isEmpty) return null;
 
-    final bytes = await File(paths.first).readAsBytes();
-    if (bytes.isEmpty) {
+    final images = <Uint8List>[];
+    for (final path in paths) {
+      final bytes = await File(path).readAsBytes();
+      if (bytes.isNotEmpty) {
+        images.add(Uint8List.fromList(bytes));
+      }
+    }
+
+    if (images.isEmpty) {
       throw const CunningDocumentScannerException(
-        'The scanner returned an empty PDF.',
+        'The scanner returned no pages.',
       );
     }
-    return _ScanResult(Uint8List.fromList(bytes));
+
+    final pdf = await PdfService.imagesToPdf(images);
+    return _ScanResult(pdf, pageCount: images.length);
   }
 
   Future<_ScanResult?> _scanWithAndroidFallback() async {
@@ -117,7 +127,10 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<_ScanResult?> _scanWithAndroidMlKit() async {
     final scanner = mlkit.DocumentScanner(
       options: mlkit.DocumentScannerOptions(
-        documentFormats: const {mlkit.DocumentFormat.pdf},
+        documentFormats: const {
+          mlkit.DocumentFormat.jpeg,
+          mlkit.DocumentFormat.pdf,
+        },
         mode: mlkit.ScannerMode.full,
         pageLimit: 50,
         isGalleryImport: false,
@@ -127,15 +140,31 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       final result = await scanner.scanDocument();
       final pdf = result.pdf;
-      if (pdf == null || pdf.uri.isEmpty) return null;
+      if (pdf != null && pdf.uri.isNotEmpty) {
+        final bytes = await File(pdf.uri).readAsBytes();
+        if (bytes.isNotEmpty) {
+          return _ScanResult(
+            Uint8List.fromList(bytes),
+            pageCount: pdf.pageCount,
+          );
+        }
+      }
 
-      final bytes = await File(pdf.uri).readAsBytes();
-      if (bytes.isEmpty) {
+      final imagePaths = result.images ?? const <String>[];
+      final images = <Uint8List>[];
+      for (final path in imagePaths) {
+        final bytes = await File(path).readAsBytes();
+        if (bytes.isNotEmpty) {
+          images.add(Uint8List.fromList(bytes));
+        }
+      }
+      if (images.isEmpty) {
         throw const CunningDocumentScannerException(
-          'The scanner returned an empty PDF.',
+          'The scanner returned no pages.',
         );
       }
-      return _ScanResult(Uint8List.fromList(bytes), pageCount: pdf.pageCount);
+      final bytes = await PdfService.imagesToPdf(images);
+      return _ScanResult(bytes, pageCount: images.length);
     } finally {
       await scanner.close();
     }

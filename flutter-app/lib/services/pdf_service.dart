@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:ui' show Offset, Rect;
+import 'dart:ui' show Offset, Rect, Size, instantiateImageCodec;
 
 import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
@@ -78,6 +78,36 @@ class PdfService {
     final count = doc.pages.count;
     doc.dispose();
     return count;
+  }
+
+  /// Builds a PDF from scanned page images. This keeps scan-to-PDF reliable
+  /// even on devices whose native scanner cannot export a PDF directly.
+  static Future<Uint8List> imagesToPdf(List<Uint8List> images) async {
+    if (images.isEmpty) {
+      throw StateError('No scanned pages were returned.');
+    }
+
+    final PdfDocument output = PdfDocument();
+    output.compressionLevel = PdfCompressionLevel.best;
+    output.pageSettings.margins.all = 0;
+    _clearDocumentInfo(output);
+
+    try {
+      for (final imageBytes in images) {
+        final size = await _imageSize(imageBytes);
+        output.pageSettings.size = size;
+        final page = output.pages.add();
+        page.graphics.drawImage(
+          PdfBitmap(imageBytes),
+          Rect.fromLTWH(0, 0, size.width, size.height),
+        );
+      }
+
+      final bytes = await output.save();
+      return Uint8List.fromList(bytes);
+    } finally {
+      output.dispose();
+    }
   }
 
   /// Re-saves the document with maximum stream compression and no metadata.
@@ -241,6 +271,21 @@ class PdfService {
     doc.documentInformation.subject = '';
     doc.documentInformation.keywords = '';
     doc.documentInformation.title = '';
+  }
+
+  static Future<Size> _imageSize(Uint8List bytes) async {
+    final codec = await instantiateImageCodec(bytes);
+    try {
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      try {
+        return Size(image.width.toDouble(), image.height.toDouble());
+      } finally {
+        image.dispose();
+      }
+    } finally {
+      codec.dispose();
+    }
   }
 
   /// Removes password protection from a PDF the caller already has the
