@@ -101,7 +101,6 @@ class _HomeShellState extends State<HomeShell> {
       icon: Icons.lock_open_rounded,
       color: AppColors.unlock,
       screen: const UnlockScreen(),
-      badge: 'Mobile',
     ),
   ];
 

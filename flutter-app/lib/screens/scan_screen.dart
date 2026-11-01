@@ -117,11 +117,12 @@ class _ScanScreenState extends State<ScanScreen> {
     // A single "Save PDF" tap, one destination prompt: the system's own
     // Save As dialog already lets the user rename the file as well as
     // choose where it goes, so asking for a name here first would just be
-    // the same question twice in a row.
-    final filename = 'scan-${_timestamp()}.pdf';
-    final saved = await savePdfFile(scan.bytes, filename);
+    // the same question twice in a row. saveAndExport also carries
+    // whatever name the user chooses there over to this app's own Saved
+    // tab entry, so the two copies don't end up confusingly named
+    // differently.
+    final saved = await saveAndExport(scan.bytes, 'scan-${_timestamp()}.pdf');
     await _cleanScannerCache();
-    await exportPdfToDevice(scan.bytes, filename);
     if (!mounted) return;
 
     setState(() {

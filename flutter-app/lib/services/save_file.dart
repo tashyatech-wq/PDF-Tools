@@ -132,12 +132,28 @@ Future<void> shareSavedPdf(SavedPdfFile file) async {
 /// app and other apps can see it. (This app's own "Saved Files" library
 /// uses private app storage instead, by design -- see [_savedPdfDirectory]
 /// -- so it can't be seen from there either.)
-Future<void> exportPdfToDevice(Uint8List bytes, String filename) async {
-  await FilePicker.saveFile(
+///
+/// Returns the destination [Uri], or `null` if the user cancelled.
+Future<Uri?> exportPdfToDevice(Uint8List bytes, String filename) {
+  return FilePicker.saveFile(
     fileName: _safeFilename(filename),
     bytes: bytes,
     mimeType: 'application/pdf',
   );
+}
+
+/// Best-effort filename the user actually chose in the Save As dialog.
+///
+/// Local storage providers (Downloads, primary storage) expose it as the
+/// final path segment of the returned content URI, e.g.
+/// `.../document/primary:Download/m1new.pdf` -- not guaranteed for every
+/// provider (a cloud provider can return an opaque document ID instead of
+/// a readable name), but it covers the common case.
+String? _displayNameFromUri(Uri uri) {
+  if (uri.pathSegments.isEmpty) return null;
+  final decoded = Uri.decodeComponent(uri.pathSegments.last);
+  final name = decoded.substring(decoded.lastIndexOf('/') + 1);
+  return name.toLowerCase().endsWith('.pdf') ? name : null;
 }
 
 Future<void> deleteSavedPdf(SavedPdfFile file) async {
@@ -149,12 +165,20 @@ Future<void> deleteSavedPdf(SavedPdfFile file) async {
   await _writeSavedIndex(files.where((item) => item.id != file.id).toList());
 }
 
-/// Saves the PDF inside the app's own library first (so it shows up in the
-/// Saved tab and can be reused as input elsewhere), then lets the user save
-/// a copy to a standard location of their choice -- Downloads, Documents,
-/// or wherever else -- via the system's own "Save As" dialog.
+/// Lets the user save a copy to a standard location of their choice --
+/// Downloads, Documents, or wherever else -- via the system's own "Save As"
+/// dialog, then saves the PDF inside the app's own library too (so it shows
+/// up in the Saved tab and can be reused as input elsewhere), under
+/// whichever name the user actually chose in that dialog when it can be
+/// determined, so the two copies don't end up confusingly named differently.
 Future<SavedPdfFile> saveAndExport(Uint8List bytes, String filename) async {
-  final saved = await savePdfFile(bytes, filename);
-  await exportPdfToDevice(bytes, filename);
-  return saved;
+  String? chosenName;
+  try {
+    final uri = await exportPdfToDevice(bytes, filename);
+    if (uri != null) chosenName = _displayNameFromUri(uri);
+  } catch (_) {
+    // The private copy below is the fallback if the system Save As dialog
+    // itself fails; the user's work should never be lost over it.
+  }
+  return savePdfFile(bytes, chosenName ?? filename);
 }
