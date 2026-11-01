@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../services/save_file.dart';
+import '../widgets/ad_mob_banner.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   const PdfPreviewScreen({super.key, required this.file});
@@ -47,6 +48,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
         ],
       ),
       body: PdfView(controller: _controller),
+      bottomNavigationBar: const AdMobBanner(),
     );
   }
 }

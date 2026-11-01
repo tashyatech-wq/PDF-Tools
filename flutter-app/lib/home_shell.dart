@@ -10,6 +10,7 @@ import 'screens/split_screen.dart';
 import 'screens/unlock_screen.dart';
 import 'theme.dart';
 import 'widgets/ad_mob_banner.dart';
+import 'widgets/native_tool_ad.dart';
 
 class _Tool {
   const _Tool({
@@ -520,6 +521,8 @@ class _HomeScreen extends StatelessWidget {
               onTap: () => onToolTap(tools[index]),
             ),
           ),
+          const SizedBox(height: 16),
+          const NativeToolAd(),
         ],
       ),
     );

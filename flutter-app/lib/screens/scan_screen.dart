@@ -10,6 +10,7 @@ import '../services/app_open_ad_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/save_file.dart';
+import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -367,6 +368,7 @@ class _ScanScreenState extends State<ScanScreen> {
             sublabel: 'Auto capture pages to PDF',
             onTap: _scan,
           ),
+          const NativeToolAd(),
           const InfoCard(
             title: 'Scan to PDF',
             body: 'Detect pages, review the scan, name the file, and save one PDF.',
