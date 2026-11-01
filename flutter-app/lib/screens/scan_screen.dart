@@ -6,10 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart'
     as mlkit;
 
+import '../services/app_open_ad_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/save_file.dart';
-import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -59,6 +59,12 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
+      // The scanner is a separate full-screen activity, so closing it takes
+      // the app through a pause/resume cycle indistinguishable, to
+      // AppOpenAdService, from the user returning from somewhere else. Left
+      // unsuppressed, the resume fires a full-screen app-open ad over the
+      // save-filename dialog shown right below, corrupting the widget tree.
+      AppOpenAdService.instance.suppressNextResume();
       final scan = Platform.isAndroid
           ? await _scanWithAndroidFallback()
           : await _scanWithNativeScanner();
@@ -71,6 +77,20 @@ class _ScanScreenState extends State<ScanScreen> {
         });
         return;
       }
+
+      // Returning from the scanner activity tears down and reattaches this
+      // Activity's own Flutter rendering surface; that reattachment is still
+      // in flight for a moment after `await` returns here. Pushing the save
+      // dialog (a new Navigator route with its own animation) before it
+      // settles corrupts the widget tree (a ChangeNotifier/TextEditingController
+      // disposed-use crash). There's no Dart-level signal for "surface fully
+      // reattached", so wait out a few real frames plus a safety margin —
+      // a fixed single delay measured too short on this device.
+      for (var i = 0; i < 3; i++) {
+        await WidgetsBinding.instance.endOfFrame;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
 
       final filename = await _askFileName('scan-${_timestamp()}.pdf');
       if (!mounted) return;
@@ -104,6 +124,8 @@ class _ScanScreenState extends State<ScanScreen> {
         _error = _generalScannerError(e);
         _cameraSettingsNeeded = _isCameraPermissionError(e);
       });
+    } finally {
+      AppOpenAdService.instance.clearSuppression();
     }
   }
 
@@ -158,7 +180,11 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<_ScanResult?> _scanWithAndroidFallback() async {
     try {
       return await _scanWithAndroidMlKit();
-    } catch (_) {
+    } catch (e) {
+      // The real failure reason from Play Services is otherwise never seen:
+      // both this call and the cunning_document_scanner fallback it leads to
+      // swallow it before it reaches the UI.
+      debugPrint('ML Kit document scanner unavailable, falling back: $e');
       return _scanWithNativeScanner();
     }
   }
@@ -204,6 +230,14 @@ class _ScanScreenState extends State<ScanScreen> {
       }
       final bytes = await PdfService.imagesToPdf(images);
       return _ScanResult(bytes, pageCount: images.length);
+    } on PlatformException catch (e) {
+      // The native side reports a plain user cancel as an error ("Operation
+      // cancelled") rather than an empty result, which would otherwise be
+      // mistaken for a scanner failure and silently reopen a second,
+      // different scanner (the cunning_document_scanner fallback).
+      if (e.message == 'Operation cancelled') return null;
+      debugPrint('ML Kit document scanner failed: ${e.code} ${e.message}');
+      rethrow;
     } finally {
       await scanner.close();
     }
@@ -333,7 +367,6 @@ class _ScanScreenState extends State<ScanScreen> {
             sublabel: 'Auto capture pages to PDF',
             onTap: _scan,
           ),
-          const NativeToolAd(),
           const InfoCard(
             title: 'Scan to PDF',
             body: 'Detect pages, review the scan, name the file, and save one PDF.',

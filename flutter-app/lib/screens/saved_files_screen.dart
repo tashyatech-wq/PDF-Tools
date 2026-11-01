@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
+import 'pdf_preview_screen.dart';
 
 class SavedFilesScreen extends StatefulWidget {
   const SavedFilesScreen({super.key});
@@ -112,6 +113,11 @@ class _SavedFilesScreenState extends State<SavedFilesScreen> {
               final file = files[fileIndex];
               return _SavedFileTile(
                 file: file,
+                onOpen: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PdfPreviewScreen(file: file),
+                  ),
+                ),
                 onShare: () => shareSavedPdf(file),
                 onDelete: () => _delete(file),
               );
@@ -126,73 +132,86 @@ class _SavedFilesScreenState extends State<SavedFilesScreen> {
 class _SavedFileTile extends StatelessWidget {
   const _SavedFileTile({
     required this.file,
+    required this.onOpen,
     required this.onShare,
     required this.onDelete,
   });
 
   final SavedPdfFile file;
+  final VoidCallback onOpen;
   final VoidCallback onShare;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onOpen,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(Icons.picture_as_pdf_rounded, color: color, size: 22),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.16)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  file.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w800,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${formatBytes(file.size)} • ${_dateLabel(file.createdAt)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.2,
-                    color: Theme.of(context).hintColor,
-                  ),
+                child: Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: color,
+                  size: 22,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      file.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${formatBytes(file.size)} • ${_dateLabel(file.createdAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.2,
+                        color: Theme.of(context).hintColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Share',
+                onPressed: onShare,
+                icon: const Icon(Icons.ios_share_rounded),
+              ),
+              IconButton(
+                tooltip: 'Delete',
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline_rounded),
+              ),
+            ],
           ),
-          IconButton(
-            tooltip: 'Share',
-            onPressed: onShare,
-            icon: const Icon(Icons.ios_share_rounded),
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline_rounded),
-          ),
-        ],
+        ),
       ),
     );
   }

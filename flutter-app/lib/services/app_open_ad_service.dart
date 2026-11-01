@@ -16,8 +16,18 @@ class AppOpenAdService with WidgetsBindingObserver {
   bool _isShowing = false;
   bool _started = false;
   bool _wasBackgrounded = false;
+  bool _suppressed = false;
   DateTime? _loadedAt;
   DateTime? _lastShownAt;
+
+  /// Call before launching an activity that the app itself owns (the
+  /// document scanner, a share sheet, etc.) so the next resume isn't
+  /// mistaken for the user returning from elsewhere and doesn't fire an ad
+  /// over whatever UI that flow shows next (e.g. the save-filename dialog).
+  void suppressNextResume() => _suppressed = true;
+
+  /// Re-arms normal app-open-ad behaviour once the owned flow is done.
+  void clearSuppression() => _suppressed = false;
 
   void start() {
     if (_started || !AdMobConfig.isSupportedPlatform) return;
@@ -101,6 +111,10 @@ class AppOpenAdService with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed && _wasBackgrounded) {
       _wasBackgrounded = false;
+      if (_suppressed) {
+        _suppressed = false;
+        return;
+      }
       showIfAvailable();
     }
   }
