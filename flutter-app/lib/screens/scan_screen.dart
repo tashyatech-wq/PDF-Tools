@@ -114,15 +114,14 @@ class _ScanScreenState extends State<ScanScreen> {
     if (scan == null || _working) return;
     setState(() => _working = true);
 
-    final filename = await _askFileName('scan-${_timestamp()}.pdf');
-    if (!mounted) return;
-    if (filename == null) {
-      setState(() => _working = false);
-      return;
-    }
-
+    // A single "Save PDF" tap, one destination prompt: the system's own
+    // Save As dialog already lets the user rename the file as well as
+    // choose where it goes, so asking for a name here first would just be
+    // the same question twice in a row.
+    final filename = 'scan-${_timestamp()}.pdf';
     final saved = await savePdfFile(scan.bytes, filename);
     await _cleanScannerCache();
+    await exportPdfToDevice(scan.bytes, filename);
     if (!mounted) return;
 
     setState(() {
@@ -249,71 +248,10 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future<String?> _askFileName(String defaultName) async {
-    final controller = TextEditingController(text: defaultName);
-    final formKey = GlobalKey<FormState>();
-
-    final filename = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Save scanned PDF'),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
-                labelText: 'File name',
-                hintText: 'scan.pdf',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Enter a file name';
-                }
-                return null;
-              },
-              onFieldSubmitted: (_) {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.of(context).pop(controller.text.trim());
-                }
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.of(context).pop(controller.text.trim());
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    return filename;
-  }
-
   Future<void> _shareSaved() async {
     final saved = _saved;
     if (saved == null) return;
     await shareSavedPdf(saved);
-  }
-
-  Future<void> _exportSaved() async {
-    final saved = _saved;
-    if (saved == null) return;
-    final bytes = await File(saved.path).readAsBytes();
-    await exportPdfToDevice(bytes, saved.name);
   }
 
   Future<void> _cleanScannerCache() async {
@@ -383,7 +321,7 @@ class _ScanScreenState extends State<ScanScreen> {
           const NativeToolAd(),
           const InfoCard(
             title: 'Scan to PDF',
-            body: 'Detect pages, review the scan, name the file, and save one PDF.',
+            body: 'Detect pages, review the scan, then save one PDF.',
           ),
           const SizedBox(height: 18),
           FilledButton.icon(
@@ -434,12 +372,6 @@ class _ScanScreenState extends State<ScanScreen> {
                   'Saved ${saved.name} (${formatBytes(saved.size)})${pageCount == null ? '' : ' • $pageCount pages'} in Saved.',
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _exportSaved,
-              icon: const Icon(Icons.save_alt_rounded),
-              label: const Text('Save PDF'),
-            ),
-            const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: _shareSaved,
               icon: const Icon(Icons.ios_share_rounded),
