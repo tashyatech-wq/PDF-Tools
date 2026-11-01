@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/compress_screen.dart';
 import 'screens/merge_screen.dart';
+import 'screens/saved_files_screen.dart';
 import 'screens/split_screen.dart';
 import 'screens/unlock_screen.dart';
 import 'theme.dart';
@@ -33,6 +34,8 @@ class _Tool {
   final String? badge;
 }
 
+enum _ShellTab { home, saved }
+
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -42,6 +45,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   bool _showSplash = true;
+  _ShellTab _tab = _ShellTab.home;
   _Tool? _selectedTool;
   Timer? _splashTimer;
 
@@ -89,7 +93,11 @@ class _HomeShellState extends State<HomeShell> {
     ),
   ];
 
-  Color get _accent => _selectedTool?.color ?? AppColors.merge;
+  Color get _accent {
+    final tool = _selectedTool;
+    if (tool != null) return tool.color;
+    return _tab == _ShellTab.saved ? AppColors.split : AppColors.merge;
+  }
 
   @override
   void initState() {
@@ -107,9 +115,20 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
-  void _openTool(_Tool tool) => setState(() => _selectedTool = tool);
+  void _openTool(_Tool tool) => setState(() {
+    _tab = _ShellTab.home;
+    _selectedTool = tool;
+  });
 
-  void _goHome() => setState(() => _selectedTool = null);
+  void _goHome() => setState(() {
+    _tab = _ShellTab.home;
+    _selectedTool = null;
+  });
+
+  void _goSaved() => setState(() {
+    _tab = _ShellTab.saved;
+    _selectedTool = null;
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -124,15 +143,84 @@ class _HomeShellState extends State<HomeShell> {
             ? const _SplashScreen()
             : Column(
                 children: [
-                  _TopBar(tool: current, accent: _accent, onBack: _goHome),
+                  _TopBar(
+                    tool: current,
+                    tab: _tab,
+                    accent: _accent,
+                    onBack: _goHome,
+                  ),
                   Expanded(
                     child: current == null
-                        ? _HomeScreen(tools: _tools, onToolTap: _openTool)
+                        ? _tab == _ShellTab.home
+                              ? _HomeScreen(tools: _tools, onToolTap: _openTool)
+                              : const SavedFilesScreen()
                         : current.screen,
                   ),
                 ],
               ),
-        bottomNavigationBar: isSplash ? null : const AdMobBanner(),
+        bottomNavigationBar: isSplash
+            ? null
+            : _BottomArea(currentTab: _tab, onHome: _goHome, onSaved: _goSaved),
+      ),
+    );
+  }
+}
+
+class _BottomArea extends StatelessWidget {
+  const _BottomArea({
+    required this.currentTab,
+    required this.onHome,
+    required this.onSaved,
+  });
+
+  final _ShellTab currentTab;
+  final VoidCallback onHome;
+  final VoidCallback onSaved;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NavigationBar(
+              height: 62,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              selectedIndex: currentTab == _ShellTab.saved ? 1 : 0,
+              onDestinationSelected: (index) {
+                if (index == 0) {
+                  onHome();
+                } else {
+                  onSaved();
+                }
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.folder_outlined),
+                  selectedIcon: Icon(Icons.folder_rounded),
+                  label: 'Saved',
+                ),
+              ],
+            ),
+            const AdMobBanner(),
+          ],
+        ),
       ),
     );
   }
@@ -242,17 +330,26 @@ class _SplashScreen extends StatelessWidget {
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.tool,
+    required this.tab,
     required this.accent,
     required this.onBack,
   });
 
   final _Tool? tool;
+  final _ShellTab tab;
   final Color accent;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final isHome = tool == null;
+    final title =
+        tool?.title ?? (tab == _ShellTab.saved ? 'Saved Files' : 'PDF Tools');
+    final subtitle =
+        tool?.subtitle ??
+        (tab == _ShellTab.saved
+            ? 'Your completed PDFs'
+            : 'Choose what you need');
     return SafeArea(
       bottom: false,
       child: Container(
@@ -280,7 +377,7 @@ class _TopBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isHome ? 'PDF Tools' : tool!.title,
+                        title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -290,7 +387,7 @@ class _TopBar extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        isHome ? 'Choose what you need' : tool!.subtitle,
+                        subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

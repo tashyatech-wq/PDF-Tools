@@ -76,7 +76,7 @@ class _SplitScreenState extends State<SplitScreen> {
         await saveAndShare(bytes, 'pages-$from-$to.pdf');
         setState(
           () => _successMessage =
-              'Pages extracted — ${formatBytes(bytes.length)}',
+              'Pages extracted — ${formatBytes(bytes.length)}. Saved in Saved.',
         );
         InterstitialAdService.instance.showAfterExport();
       } else {
@@ -88,8 +88,8 @@ class _SplitScreenState extends State<SplitScreen> {
           await saveAndShare(pages[i], 'page-${i + 1}.pdf');
         }
         setState(
-          () =>
-              _successMessage = '${pages.length} pages saved as separate files',
+          () => _successMessage =
+              '${pages.length} pages saved as separate files in Saved.',
         );
         InterstitialAdService.instance.showAfterExport();
       }

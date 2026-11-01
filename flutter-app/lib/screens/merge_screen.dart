@@ -69,7 +69,7 @@ class _MergeScreenState extends State<MergeScreen> {
       await saveAndShare(bytes, 'merged.pdf');
       setState(
         () => _successMessage =
-            'Merged into one PDF — ${formatBytes(bytes.length)}',
+            'Merged into one PDF — ${formatBytes(bytes.length)}. Saved in Saved.',
       );
       InterstitialAdService.instance.showAfterExport();
     } catch (e) {

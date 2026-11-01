@@ -64,7 +64,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
       final outName = '$baseName-unlocked.pdf';
       await saveAndShare(out, outName);
       setState(
-        () => _successMessage = 'Password removed — ${formatBytes(out.length)}',
+        () => _successMessage =
+            'Password removed — ${formatBytes(out.length)}. Saved in Saved.',
       );
       InterstitialAdService.instance.showAfterExport();
     } on PdfUnlockException catch (e) {

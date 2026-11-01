@@ -72,7 +72,7 @@ class _CompressScreenState extends State<CompressScreen> {
       if (result.isSmaller) {
         await saveAndShare(result.bytes, outName);
         final msg =
-            '${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} — ${result.savedPercent.toStringAsFixed(1)}% smaller (${result.method})';
+            '${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} — ${result.savedPercent.toStringAsFixed(1)}% smaller (${result.method}). Saved in Saved.';
         setState(() => _successMessage = msg);
         InterstitialAdService.instance.showAfterExport();
       } else {
