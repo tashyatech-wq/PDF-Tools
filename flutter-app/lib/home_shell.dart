@@ -9,7 +9,6 @@ import 'screens/saved_files_screen.dart';
 import 'screens/split_screen.dart';
 import 'screens/unlock_screen.dart';
 import 'theme.dart';
-import 'widgets/ad_mob_banner.dart';
 import 'widgets/native_tool_ad.dart';
 
 class _Tool {
@@ -203,35 +202,29 @@ class _BottomArea extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            NavigationBar(
-              height: 62,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              selectedIndex: currentTab == _ShellTab.saved ? 1 : 0,
-              onDestinationSelected: (index) {
-                if (index == 0) {
-                  onHome();
-                } else {
-                  onSaved();
-                }
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_rounded),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.folder_outlined),
-                  selectedIcon: Icon(Icons.folder_rounded),
-                  label: 'Saved',
-                ),
-              ],
+        child: NavigationBar(
+          height: 62,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedIndex: currentTab == _ShellTab.saved ? 1 : 0,
+          onDestinationSelected: (index) {
+            if (index == 0) {
+              onHome();
+            } else {
+              onSaved();
+            }
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Home',
             ),
-            const AdMobBanner(),
+            NavigationDestination(
+              icon: Icon(Icons.folder_outlined),
+              selectedIcon: Icon(Icons.folder_rounded),
+              label: 'Saved',
+            ),
           ],
         ),
       ),
@@ -495,6 +488,8 @@ class _HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _HomeHero(),
+          const SizedBox(height: 16),
+          const NativeToolAd(),
           const SizedBox(height: 18),
           Text(
             'START',

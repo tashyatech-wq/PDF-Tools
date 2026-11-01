@@ -7,7 +7,6 @@ import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart
     as mlkit;
 
 import '../services/app_open_ad_service.dart';
-import '../services/interstitial_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
@@ -37,6 +36,7 @@ class _ScanScreenState extends State<ScanScreen> {
   SavedPdfFile? _saved;
   int? _lastPageCount;
   bool _cameraSettingsNeeded = false;
+  _ScanResult? _pendingScan;
 
   Future<void> _scan() async {
     if (_working) return;
@@ -46,6 +46,7 @@ class _ScanScreenState extends State<ScanScreen> {
       _saved = null;
       _lastPageCount = null;
       _cameraSettingsNeeded = false;
+      _pendingScan = null;
     });
 
     try {
@@ -63,8 +64,8 @@ class _ScanScreenState extends State<ScanScreen> {
       // The scanner is a separate full-screen activity, so closing it takes
       // the app through a pause/resume cycle indistinguishable, to
       // AppOpenAdService, from the user returning from somewhere else. Left
-      // unsuppressed, the resume fires a full-screen app-open ad over the
-      // save-filename dialog shown right below, corrupting the widget tree.
+      // unsuppressed, the resume fires a full-screen app-open ad the instant
+      // the scanner closes.
       AppOpenAdService.instance.suppressNextResume();
       final scan = Platform.isAndroid
           ? await _scanWithAndroidFallback()
@@ -79,38 +80,16 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-      // Returning from the scanner activity tears down and reattaches this
-      // Activity's own Flutter rendering surface; that reattachment is still
-      // in flight for a moment after `await` returns here. Pushing the save
-      // dialog (a new Navigator route with its own animation) before it
-      // settles corrupts the widget tree (a ChangeNotifier/TextEditingController
-      // disposed-use crash). There's no Dart-level signal for "surface fully
-      // reattached", so wait out a few real frames plus a safety margin —
-      // a fixed single delay measured too short on this device.
-      for (var i = 0; i < 3; i++) {
-        await WidgetsBinding.instance.endOfFrame;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-
-      final filename = await _askFileName('scan-${_timestamp()}.pdf');
-      if (!mounted) return;
-
-      if (filename == null) {
-        setState(() => _working = false);
-        return;
-      }
-
-      final saved = await savePdfFile(scan.bytes, filename);
-      await _cleanScannerCache();
-
-      if (!mounted) return;
+      // Scanning done — hand control back to the user instead of
+      // immediately pushing the save dialog ourselves. Programmatically
+      // opening a new route the instant an external activity (the scanner)
+      // closes races that activity's own teardown and corrupts the widget
+      // tree; a dialog opened from a genuine, separately-timed button tap
+      // never hits that race, because by then everything has settled.
       setState(() {
-        _saved = saved;
-        _lastPageCount = scan.pageCount;
+        _pendingScan = scan;
         _working = false;
       });
-      InterstitialAdService.instance.showAfterExport();
     } on CunningDocumentScannerException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -129,6 +108,32 @@ class _ScanScreenState extends State<ScanScreen> {
       AppOpenAdService.instance.clearSuppression();
     }
   }
+
+  Future<void> _saveScan() async {
+    final scan = _pendingScan;
+    if (scan == null || _working) return;
+    setState(() => _working = true);
+
+    final filename = await _askFileName('scan-${_timestamp()}.pdf');
+    if (!mounted) return;
+    if (filename == null) {
+      setState(() => _working = false);
+      return;
+    }
+
+    final saved = await savePdfFile(scan.bytes, filename);
+    await _cleanScannerCache();
+    if (!mounted) return;
+
+    setState(() {
+      _saved = saved;
+      _lastPageCount = scan.pageCount;
+      _pendingScan = null;
+      _working = false;
+    });
+  }
+
+  void _discardScan() => setState(() => _pendingScan = null);
 
   Future<bool> _ensureCameraPermission() async {
     if (!Platform.isAndroid) return true;
@@ -375,7 +380,7 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
           const SizedBox(height: 18),
           FilledButton.icon(
-            onPressed: _working ? null : _scan,
+            onPressed: (_working || _pendingScan != null) ? null : _scan,
             icon: _working
                 ? const SizedBox(
                     width: 18,
@@ -388,6 +393,34 @@ class _ScanScreenState extends State<ScanScreen> {
                 : const Icon(Icons.camera_alt_rounded),
             label: Text(_working ? 'Opening scanner...' : 'Start scan'),
           ),
+          if (_pendingScan != null) ...[
+            const SizedBox(height: 12),
+            SuccessCard(
+              message: _pendingScan!.pageCount == null
+                  ? 'Scan complete — ready to save.'
+                  : 'Scan complete — ${_pendingScan!.pageCount} pages. Ready to save.',
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _working ? null : _saveScan,
+              icon: _working
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.save_rounded),
+              label: Text(_working ? 'Saving...' : 'Save PDF'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _working ? null : _discardScan,
+              child: const Text('Discard'),
+            ),
+          ],
           if (saved != null) ...[
             SuccessCard(
               message:

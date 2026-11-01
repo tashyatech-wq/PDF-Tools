@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../services/app_open_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
@@ -39,11 +40,21 @@ class _SplitScreenState extends State<SplitScreen> {
   }
 
   Future<void> _pick() async {
-    final file = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-    );
-    if (file == null) return;
+    // See the matching comment in merge_screen.dart: suppress the
+    // app-open ad across the file picker round-trip so it doesn't fire
+    // over this screen the instant the picker closes.
+    AppOpenAdService.instance.suppressNextResume();
+    final PlatformFile? picked;
+    try {
+      picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+    } finally {
+      AppOpenAdService.instance.clearSuppression();
+    }
+    if (picked == null) return;
+    final file = picked;
     final bytes = await file.readAsBytes();
     final count = PdfService.pageCount(bytes);
     setState(() {
@@ -116,7 +127,6 @@ class _SplitScreenState extends State<SplitScreen> {
                 : '$_pageCount pages',
             onTap: _pick,
           ),
-          const NativeToolAd(),
           if (_bytes != null) ...[
             const SizedBox(height: 18),
             SegmentedButton<_SplitMode>(
@@ -190,6 +200,8 @@ class _SplitScreenState extends State<SplitScreen> {
           ],
           if (_successMessage != null) SuccessCard(message: _successMessage!),
           if (_error != null) ErrorCard(message: _error!),
+          const SizedBox(height: 18),
+          const NativeToolAd(),
         ],
       ),
     );

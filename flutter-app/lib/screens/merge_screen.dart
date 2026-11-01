@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../services/app_open_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
@@ -30,12 +31,23 @@ class _MergeScreenState extends State<MergeScreen> {
   String? _successMessage;
 
   Future<void> _addFiles() async {
-    // file_picker 13.x: pickFiles() always multi-selects and returns the
-    // list directly (empty, never null, if the user cancels).
-    final picked = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-    );
+    // The file picker is a separate activity, so returning from it takes
+    // the app through a pause/resume cycle indistinguishable, to
+    // AppOpenAdService, from the user returning from somewhere else. Left
+    // unsuppressed, the resume fires a full-screen app-open ad that bumps
+    // the user off this screen right as they come back.
+    AppOpenAdService.instance.suppressNextResume();
+    final List<PlatformFile> picked;
+    try {
+      // file_picker 13.x: pickFiles() always multi-selects and returns the
+      // list directly (empty, never null, if the user cancels).
+      picked = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+    } finally {
+      AppOpenAdService.instance.clearSuppression();
+    }
     if (picked.isEmpty) return;
     final loaded = <_PickedFile>[];
     for (final f in picked) {
@@ -93,7 +105,6 @@ class _MergeScreenState extends State<MergeScreen> {
             sublabel: 'PDF only',
             onTap: _addFiles,
           ),
-          const NativeToolAd(),
           if (_files.isNotEmpty) ...[
             const SizedBox(height: 14),
             ...List.generate(_files.length, (i) {
@@ -160,6 +171,8 @@ class _MergeScreenState extends State<MergeScreen> {
             ),
           if (_successMessage != null) SuccessCard(message: _successMessage!),
           if (_error != null) ErrorCard(message: _error!),
+          const SizedBox(height: 18),
+          const NativeToolAd(),
         ],
       ),
     );
