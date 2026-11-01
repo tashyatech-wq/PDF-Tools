@@ -38,13 +38,27 @@ class _NativeTemplateAd extends StatefulWidget {
 }
 
 class _NativeTemplateAdState extends State<_NativeTemplateAd> {
+  // Retrying a failed load on every rebuild (this widget's didChangeDependencies
+  // re-runs on any ancestor Theme/MediaQuery change, not just navigation) can
+  // fire requests to the same ad unit ID fast enough to trip AdMob's own
+  // abuse-prevention throttle ("Too many recently failed requests"), which
+  // then blocks every placement sharing that ad unit, everywhere in the app.
+  static const _retryCooldown = Duration(seconds: 60);
+
   NativeAd? _nativeAd;
   bool _isLoaded = false;
+  DateTime? _lastFailedAt;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_nativeAd != null) return;
+
+    final lastFailedAt = _lastFailedAt;
+    if (lastFailedAt != null &&
+        DateTime.now().difference(lastFailedAt) < _retryCooldown) {
+      return;
+    }
 
     final adUnitId = widget.adUnitId;
     if (!AdMobConfig.isSupportedPlatform || adUnitId == null) return;
@@ -65,6 +79,7 @@ class _NativeTemplateAdState extends State<_NativeTemplateAd> {
           setState(() {
             _nativeAd = null;
             _isLoaded = false;
+            _lastFailedAt = DateTime.now();
           });
         },
       ),

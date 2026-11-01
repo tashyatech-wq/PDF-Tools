@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +10,7 @@ import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
+import '../widgets/saved_files_picker.dart';
 
 /// Unlike the web prototype (pdf-lib cannot decrypt real PDF encryption),
 /// this screen is fully functional: Syncfusion's PdfDocument genuinely
@@ -52,8 +54,20 @@ class _UnlockScreenState extends State<UnlockScreen> {
     if (picked == null) return;
     final file = picked;
     final bytes = await file.readAsBytes();
+    _applyPicked(file.name, bytes);
+  }
+
+  Future<void> _pickFromSaved() async {
+    final picked = await pickFromSavedFiles(context, allowMultiple: false);
+    if (picked == null || picked.isEmpty || !mounted) return;
+    final file = picked.first;
+    final bytes = await File(file.path).readAsBytes();
+    _applyPicked(file.name, bytes);
+  }
+
+  void _applyPicked(String name, Uint8List bytes) {
     setState(() {
-      _name = file.name;
+      _name = name;
       _bytes = bytes;
       _error = null;
       _successMessage = null;
@@ -74,7 +88,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
         '',
       );
       final outName = '$baseName-unlocked.pdf';
-      await saveAndShare(out, outName);
+      await saveAndExport(out, outName);
       setState(
         () => _successMessage =
             'Password removed — ${formatBytes(out.length)}. Saved in Saved.',
@@ -103,6 +117,12 @@ class _UnlockScreenState extends State<UnlockScreen> {
                 ? 'One file at a time'
                 : formatBytes(_bytes!.length),
             onTap: _pick,
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _pickFromSaved,
+            icon: const Icon(Icons.folder_rounded, size: 18),
+            label: const Text('Choose from Saved Files'),
           ),
           if (_bytes != null) ...[
             const SizedBox(height: 18),

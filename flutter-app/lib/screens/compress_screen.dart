@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +10,7 @@ import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
+import '../widgets/saved_files_picker.dart';
 
 class CompressScreen extends StatefulWidget {
   const CompressScreen({super.key});
@@ -45,8 +47,20 @@ class _CompressScreenState extends State<CompressScreen> {
     if (picked == null) return;
     final file = picked;
     final bytes = await file.readAsBytes();
+    _applyPicked(file.name, bytes);
+  }
+
+  Future<void> _pickFromSaved() async {
+    final picked = await pickFromSavedFiles(context, allowMultiple: false);
+    if (picked == null || picked.isEmpty || !mounted) return;
+    final file = picked.first;
+    final bytes = await File(file.path).readAsBytes();
+    _applyPicked(file.name, bytes);
+  }
+
+  void _applyPicked(String name, Uint8List bytes) {
     setState(() {
-      _name = file.name;
+      _name = name;
       _bytes = bytes;
       _error = null;
       _successMessage = null;
@@ -82,7 +96,7 @@ class _CompressScreenState extends State<CompressScreen> {
       );
       final outName = '$baseName-compressed.pdf';
       if (result.isSmaller) {
-        await saveAndShare(result.bytes, outName);
+        await saveAndExport(result.bytes, outName);
         final msg =
             '${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} — ${result.savedPercent.toStringAsFixed(1)}% smaller (${result.method}). Saved in Saved.';
         setState(() => _successMessage = msg);
@@ -127,6 +141,12 @@ class _CompressScreenState extends State<CompressScreen> {
                 ? 'One file at a time'
                 : formatBytes(_bytes!.length),
             onTap: _pick,
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _pickFromSaved,
+            icon: const Icon(Icons.folder_rounded, size: 18),
+            label: const Text('Choose from Saved Files'),
           ),
           if (_bytes != null) ...[
             const SizedBox(height: 18),

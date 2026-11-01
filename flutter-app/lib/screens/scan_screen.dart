@@ -309,6 +309,13 @@ class _ScanScreenState extends State<ScanScreen> {
     await shareSavedPdf(saved);
   }
 
+  Future<void> _exportSaved() async {
+    final saved = _saved;
+    if (saved == null) return;
+    final bytes = await File(saved.path).readAsBytes();
+    await exportPdfToDevice(bytes, saved.name);
+  }
+
   Future<void> _cleanScannerCache() async {
     try {
       await CunningDocumentScanner.cleanCache();
@@ -427,6 +434,12 @@ class _ScanScreenState extends State<ScanScreen> {
                   'Saved ${saved.name} (${formatBytes(saved.size)})${pageCount == null ? '' : ' • $pageCount pages'} in Saved.',
             ),
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _exportSaved,
+              icon: const Icon(Icons.save_alt_rounded),
+              label: const Text('Save to Downloads / Documents'),
+            ),
+            const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: _shareSaved,
               icon: const Icon(Icons.ios_share_rounded),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -124,6 +125,21 @@ Future<void> shareSavedPdf(SavedPdfFile file) async {
   );
 }
 
+/// Lets the user put a copy of [bytes] wherever they choose on their device
+/// (Downloads, Documents, Drive, etc.) via Android/iOS's own "Save As"
+/// picker -- the standard way a document-producing app hands off its
+/// output, and the only way the file ends up somewhere the system Files
+/// app and other apps can see it. (This app's own "Saved Files" library
+/// uses private app storage instead, by design -- see [_savedPdfDirectory]
+/// -- so it can't be seen from there either.)
+Future<void> exportPdfToDevice(Uint8List bytes, String filename) async {
+  await FilePicker.saveFile(
+    fileName: _safeFilename(filename),
+    bytes: bytes,
+    mimeType: 'application/pdf',
+  );
+}
+
 Future<void> deleteSavedPdf(SavedPdfFile file) async {
   final diskFile = File(file.path);
   if (await diskFile.exists()) {
@@ -133,10 +149,12 @@ Future<void> deleteSavedPdf(SavedPdfFile file) async {
   await _writeSavedIndex(files.where((item) => item.id != file.id).toList());
 }
 
-/// Saves the PDF inside the app first, then opens the native share sheet.
-/// Users can return to the Saved tab later to share or delete the export.
-Future<SavedPdfFile> saveAndShare(Uint8List bytes, String filename) async {
+/// Saves the PDF inside the app's own library first (so it shows up in the
+/// Saved tab and can be reused as input elsewhere), then lets the user save
+/// a copy to a standard location of their choice -- Downloads, Documents,
+/// or wherever else -- via the system's own "Save As" dialog.
+Future<SavedPdfFile> saveAndExport(Uint8List bytes, String filename) async {
   final saved = await savePdfFile(bytes, filename);
-  await shareSavedPdf(saved);
+  await exportPdfToDevice(bytes, filename);
   return saved;
 }

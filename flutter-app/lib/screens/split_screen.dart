@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +10,7 @@ import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
+import '../widgets/saved_files_picker.dart';
 
 enum _SplitMode { range, every }
 
@@ -56,9 +58,21 @@ class _SplitScreenState extends State<SplitScreen> {
     if (picked == null) return;
     final file = picked;
     final bytes = await file.readAsBytes();
+    _applyPicked(file.name, bytes);
+  }
+
+  Future<void> _pickFromSaved() async {
+    final picked = await pickFromSavedFiles(context, allowMultiple: false);
+    if (picked == null || picked.isEmpty || !mounted) return;
+    final file = picked.first;
+    final bytes = await File(file.path).readAsBytes();
+    _applyPicked(file.name, bytes);
+  }
+
+  void _applyPicked(String name, Uint8List bytes) {
     final count = PdfService.pageCount(bytes);
     setState(() {
-      _name = file.name;
+      _name = name;
       _bytes = bytes;
       _pageCount = count;
       _fromCtrl.text = '1';
@@ -85,7 +99,7 @@ class _SplitScreenState extends State<SplitScreen> {
           from: from,
           to: to,
         );
-        await saveAndShare(bytes, 'pages-$from-$to.pdf');
+        await saveAndExport(bytes, 'pages-$from-$to.pdf');
         setState(
           () => _successMessage =
               'Pages extracted — ${formatBytes(bytes.length)}. Saved in Saved.',
@@ -96,8 +110,11 @@ class _SplitScreenState extends State<SplitScreen> {
           _bytes!,
           onPage: (done, total) => setState(() => _progress = done / total),
         );
+        // One "Save As" dialog per page would mean N confirmations in a
+        // row for an N-page PDF -- these stay in the app's own library
+        // instead; the Saved tab's Share button covers sending them on.
         for (int i = 0; i < pages.length; i++) {
-          await saveAndShare(pages[i], 'page-${i + 1}.pdf');
+          await savePdfFile(pages[i], 'page-${i + 1}.pdf');
         }
         setState(
           () => _successMessage =
@@ -126,6 +143,12 @@ class _SplitScreenState extends State<SplitScreen> {
                 ? 'One file at a time'
                 : '$_pageCount pages',
             onTap: _pick,
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _pickFromSaved,
+            icon: const Icon(Icons.folder_rounded, size: 18),
+            label: const Text('Choose from Saved Files'),
           ),
           if (_bytes != null) ...[
             const SizedBox(height: 18),

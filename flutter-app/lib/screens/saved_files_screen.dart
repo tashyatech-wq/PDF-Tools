@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../services/save_file.dart';
@@ -28,6 +30,11 @@ class _SavedFilesScreenState extends State<SavedFilesScreen> {
   Future<void> _delete(SavedPdfFile file) async {
     await deleteSavedPdf(file);
     _reload();
+  }
+
+  Future<void> _export(SavedPdfFile file) async {
+    final bytes = await File(file.path).readAsBytes();
+    await exportPdfToDevice(bytes, file.name);
   }
 
   @override
@@ -119,6 +126,7 @@ class _SavedFilesScreenState extends State<SavedFilesScreen> {
                   ),
                 ),
                 onShare: () => shareSavedPdf(file),
+                onExport: () => _export(file),
                 onDelete: () => _delete(file),
               );
             },
@@ -134,12 +142,14 @@ class _SavedFileTile extends StatelessWidget {
     required this.file,
     required this.onOpen,
     required this.onShare,
+    required this.onExport,
     required this.onDelete,
   });
 
   final SavedPdfFile file;
   final VoidCallback onOpen;
   final VoidCallback onShare;
+  final VoidCallback onExport;
   final VoidCallback onDelete;
 
   @override
@@ -203,6 +213,11 @@ class _SavedFileTile extends StatelessWidget {
                 tooltip: 'Share',
                 onPressed: onShare,
                 icon: const Icon(Icons.ios_share_rounded),
+              ),
+              IconButton(
+                tooltip: 'Save to Downloads / Documents',
+                onPressed: onExport,
+                icon: const Icon(Icons.save_alt_rounded),
               ),
               IconButton(
                 tooltip: 'Delete',

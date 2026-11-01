@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +10,7 @@ import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
+import '../widgets/saved_files_picker.dart';
 
 class _PickedFile {
   _PickedFile(this.name, this.size, this.bytes);
@@ -61,6 +63,21 @@ class _MergeScreenState extends State<MergeScreen> {
     });
   }
 
+  Future<void> _addFromSaved() async {
+    final picked = await pickFromSavedFiles(context, allowMultiple: true);
+    if (picked == null || picked.isEmpty || !mounted) return;
+    final loaded = <_PickedFile>[];
+    for (final f in picked) {
+      final bytes = await File(f.path).readAsBytes();
+      loaded.add(_PickedFile(f.name, bytes.length, bytes));
+    }
+    setState(() {
+      _error = null;
+      _successMessage = null;
+      _files.addAll(loaded);
+    });
+  }
+
   void _move(int index, int delta) {
     final j = index + delta;
     if (j < 0 || j >= _files.length) return;
@@ -79,7 +96,7 @@ class _MergeScreenState extends State<MergeScreen> {
     });
     try {
       final bytes = await PdfService.merge(_files.map((f) => f.bytes).toList());
-      await saveAndShare(bytes, 'merged.pdf');
+      await saveAndExport(bytes, 'merged.pdf');
       setState(
         () => _successMessage =
             'Merged into one PDF — ${formatBytes(bytes.length)}. Saved in Saved.',
@@ -104,6 +121,12 @@ class _MergeScreenState extends State<MergeScreen> {
             label: 'Add PDFs',
             sublabel: 'PDF only',
             onTap: _addFiles,
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _addFromSaved,
+            icon: const Icon(Icons.folder_rounded, size: 18),
+            label: const Text('Choose from Saved Files'),
           ),
           if (_files.isNotEmpty) ...[
             const SizedBox(height: 14),
