@@ -47,3 +47,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Google Mobile Ads currently pulls an older WorkManager transitively.
+    // Pinning avoids a release-startup crash in WorkManager's Room database.
+    implementation("androidx.work:work-runtime:2.12.0")
+}
