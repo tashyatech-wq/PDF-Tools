@@ -8,6 +8,7 @@ import '../services/app_open_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
+import '../widgets/busy_dialog.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 import '../widgets/saved_files_picker.dart';
@@ -95,8 +96,17 @@ class _MergeScreenState extends State<MergeScreen> {
       _successMessage = null;
     });
     try {
-      final bytes = await PdfService.merge(_files.map((f) => f.bytes).toList());
-      await saveAndExport(bytes, 'merged.pdf');
+      final bytes = await runBusy<Uint8List>(
+        context,
+        message: 'Merging files…',
+        action: (_) => PdfService.merge(_files.map((f) => f.bytes).toList()),
+      );
+      if (!mounted) return;
+      await runBusy<void>(
+        context,
+        message: 'Saving…',
+        action: (_) => saveAndExport(bytes, 'merged.pdf'),
+      );
       setState(
         () => _successMessage =
             'Merged into one PDF — ${formatBytes(bytes.length)}. Saved in Saved.',

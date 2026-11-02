@@ -8,6 +8,7 @@ import '../services/app_open_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
+import '../widgets/busy_dialog.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 import '../widgets/saved_files_picker.dart';
@@ -24,9 +25,6 @@ class _CompressScreenState extends State<CompressScreen> {
   Uint8List? _bytes;
   PdfCompressionMode _mode = PdfCompressionMode.recommended;
   bool _working = false;
-  int? _donePages;
-  int? _totalPages;
-  String? _workStep;
   String? _error;
   String? _successMessage;
 
@@ -71,24 +69,19 @@ class _CompressScreenState extends State<CompressScreen> {
     if (_bytes == null) return;
     setState(() {
       _working = true;
-      _donePages = null;
-      _totalPages = null;
-      _workStep = 'Preparing compression';
       _error = null;
       _successMessage = null;
     });
     try {
-      final result = await PdfService.compress(
-        _bytes!,
-        mode: _mode,
-        onProgress: (done, total, step) {
-          if (!mounted) return;
-          setState(() {
-            _donePages = done;
-            _totalPages = total;
-            _workStep = step;
-          });
-        },
+      final result = await runBusy<PdfCompressionResult>(
+        context,
+        message: 'Preparing compression…',
+        action: (busy) => PdfService.compress(
+          _bytes!,
+          mode: _mode,
+          onProgress: (done, total, step) =>
+              busy.value = total > 0 ? '$step $done of $total' : step,
+        ),
       );
       final baseName = (_name ?? 'file.pdf').replaceAll(
         RegExp(r'\.pdf$', caseSensitive: false),
@@ -96,7 +89,12 @@ class _CompressScreenState extends State<CompressScreen> {
       );
       final outName = '$baseName-compressed.pdf';
       if (result.isSmaller) {
-        await saveAndExport(result.bytes, outName);
+        if (!mounted) return;
+        await runBusy<void>(
+          context,
+          message: 'Saving…',
+          action: (_) => saveAndExport(result.bytes, outName),
+        );
         final msg =
             '${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} — ${result.savedPercent.toStringAsFixed(1)}% smaller (${result.method}). Saved in Saved.';
         setState(() => _successMessage = msg);
@@ -118,12 +116,7 @@ class _CompressScreenState extends State<CompressScreen> {
     } catch (e) {
       setState(() => _error = 'Could not compress this file: $e');
     } finally {
-      setState(() {
-        _working = false;
-        _donePages = null;
-        _totalPages = null;
-        _workStep = null;
-      });
+      setState(() => _working = false);
     }
   }
 
@@ -196,17 +189,6 @@ class _CompressScreenState extends State<CompressScreen> {
                     )
                   : const Text('Compress'),
             ),
-            if (_working && _workStep != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _progressText,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: Theme.of(context).hintColor,
-                ),
-              ),
-            ],
           ],
           if (_successMessage != null) SuccessCard(message: _successMessage!),
           if (_error != null) ErrorCard(message: _error!),
@@ -225,13 +207,4 @@ class _CompressScreenState extends State<CompressScreen> {
     PdfCompressionMode.extreme =>
       'Smallest file. Creates a scanned copy, so text may look softer.',
   };
-
-  String get _progressText {
-    final total = _totalPages;
-    final done = _donePages;
-    if (done != null && total != null) {
-      return '$_workStep $done of $total';
-    }
-    return _workStep ?? 'Compressing';
-  }
 }

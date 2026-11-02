@@ -1,16 +1,38 @@
 import 'dart:typed_data';
 import 'dart:ui' show Offset, Rect, Size, instantiateImageCodec;
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
-/// All PDF work happens here, synchronously on-device, from bytes to bytes.
-/// Nothing in this file touches the network — that's the whole point of the
-/// app. Every method takes raw file bytes and returns raw output bytes; the
-/// UI layer is the only thing that knows about file pickers or sharing.
+/// All PDF work happens here, from bytes to bytes. Nothing in this file
+/// touches the network — that's the whole point of the app. Every method
+/// takes raw file bytes and returns raw output bytes; the UI layer is the
+/// only thing that knows about file pickers or sharing.
+///
+/// Syncfusion's PDF engine is pure Dart with zero native/platform-channel
+/// code (verified against its own package source, no FFI, no
+/// MethodChannel, no android/ios folders at all) -- it's just CPU-bound,
+/// and its own `async`/`await` never actually suspends. Left on the main
+/// isolate that means it blocks the UI thread solid for as long as it
+/// runs: no frame can be painted, so even an already-visible "working"
+/// spinner freezes mid-rotation instead of looking busy. The methods below
+/// that don't need pdfx's native PDF renderer (merge/split/unlock, and the
+/// two plain-Syncfusion compression passes) run via `compute()` on a
+/// background isolate instead, specifically so the UI isolate -- and
+/// whatever progress dialog is showing -- stays alive and animating the
+/// whole time. `_rasterizeVisiblePages` is the one exception: it calls
+/// pdfx's native renderer over a real platform channel, which is a
+/// genuine suspension point already (so it doesn't freeze anything), and
+/// moving platform-channel calls to a background isolate needs explicit
+/// `BackgroundIsolateBinaryMessenger` wiring this app doesn't have, so it
+/// stays on the main isolate on purpose.
 class PdfService {
   /// Combines several PDFs, in the given order, into one document.
-  static Future<Uint8List> merge(List<Uint8List> files) async {
+  static Future<Uint8List> merge(List<Uint8List> files) =>
+      compute(_mergeIsolate, files);
+
+  static Future<Uint8List> _mergeIsolate(List<Uint8List> files) async {
     final PdfDocument output = PdfDocument();
     output.pageSettings.margins.all = 0;
 
@@ -32,7 +54,12 @@ class PdfService {
     Uint8List fileBytes, {
     required int from,
     required int to,
-  }) async {
+  }) => compute(_extractRangeIsolate, (fileBytes, from, to));
+
+  static Future<Uint8List> _extractRangeIsolate(
+    (Uint8List, int, int) args,
+  ) async {
+    final (fileBytes, from, to) = args;
     final PdfDocument source = PdfDocument(inputBytes: fileBytes);
     final PdfDocument output = PdfDocument();
     output.pageSettings.margins.all = 0;
@@ -49,12 +76,17 @@ class PdfService {
     return Uint8List.fromList(bytes);
   }
 
-  /// Splits every page of [fileBytes] into its own single-page PDF.
-  /// [onPage] is called after each page finishes, for a progress indicator.
-  static Future<List<Uint8List>> splitEveryPage(
-    Uint8List fileBytes, {
-    void Function(int done, int total)? onPage,
-  }) async {
+  /// Splits every page of [fileBytes] into its own single-page PDF. Runs on
+  /// a background isolate (see class doc), so there's no per-page progress
+  /// callback -- a callback can't cross the isolate boundary, and a
+  /// continuously-animating "Splitting..." spinner for the whole operation
+  /// reads better than one that freezes between page-done updates anyway.
+  static Future<List<Uint8List>> splitEveryPage(Uint8List fileBytes) =>
+      compute(_splitEveryPageIsolate, fileBytes);
+
+  static Future<List<Uint8List>> _splitEveryPageIsolate(
+    Uint8List fileBytes,
+  ) async {
     final PdfDocument source = PdfDocument(inputBytes: fileBytes);
     final List<Uint8List> out = [];
     final total = source.pages.count;
@@ -66,7 +98,6 @@ class PdfService {
       final bytes = await single.save();
       single.dispose();
       out.add(Uint8List.fromList(bytes));
-      onPage?.call(i + 1, total);
     }
 
     source.dispose();
@@ -122,21 +153,24 @@ class PdfService {
     PdfCompressionMode mode = PdfCompressionMode.recommended,
     void Function(int done, int total, String step)? onProgress,
   }) async {
-    final candidates = <_CompressionCandidate>[
-      _CompressionCandidate(
-        label: 'Clean save',
-        bytes: await _compressExisting(fileBytes),
-      ),
-    ];
+    // Both of these are plain Syncfusion work, so they run together on one
+    // background isolate (see class doc) -- the UI isolate, and any
+    // "working" dialog it's showing, stays free and animating for this
+    // whole stretch instead of freezing solid. There's no real page count
+    // yet at this point (this pass isn't page-by-page), so this reports
+    // `total: 0` as a "just show the label, no count" marker rather than
+    // claiming a fake "0 of 1"/"1 of 1".
+    onProgress?.call(0, 0, 'Preparing compression…');
+    final syncResults = await compute(_syncCompressIsolate, (
+      fileBytes,
+      mode,
+    ));
 
-    if (mode != PdfCompressionMode.highQuality) {
-      candidates.add(
-        _CompressionCandidate(
-          label: 'Clean rebuild',
-          bytes: await _rebuildVisiblePages(fileBytes),
-        ),
-      );
-    }
+    final candidates = <_CompressionCandidate>[
+      _CompressionCandidate(label: 'Clean save', bytes: syncResults[0]),
+      if (syncResults.length > 1)
+        _CompressionCandidate(label: 'Clean rebuild', bytes: syncResults[1]),
+    ];
 
     if (mode == PdfCompressionMode.recommended) {
       candidates.add(
@@ -147,7 +181,7 @@ class PdfService {
             dpi: 120,
             jpegQuality: 72,
             onProgress: (done, total) =>
-                onProgress?.call(done, total, 'Compressing pages'),
+                onProgress?.call(done, total, 'Compressing page'),
           ),
         ),
       );
@@ -162,7 +196,7 @@ class PdfService {
             dpi: 92,
             jpegQuality: 52,
             onProgress: (done, total) =>
-                onProgress?.call(done, total, 'Compressing pages'),
+                onProgress?.call(done, total, 'Compressing page'),
           ),
         ),
       );
@@ -177,6 +211,21 @@ class PdfService {
       method: best.label,
       mode: mode,
     );
+  }
+
+  /// Runs on the background isolate `compress()` spawns: index 0 is always
+  /// "Clean save", index 1 (when present) is "Clean rebuild".
+  static Future<List<Uint8List>> _syncCompressIsolate(
+    (Uint8List, PdfCompressionMode) args,
+  ) async {
+    final (fileBytes, mode) = args;
+    final results = <Uint8List>[
+      Uint8List.fromList(await _compressExisting(fileBytes)),
+    ];
+    if (mode != PdfCompressionMode.highQuality) {
+      results.add(Uint8List.fromList(await _rebuildVisiblePages(fileBytes)));
+    }
+    return results;
   }
 
   static Future<List<int>> _compressExisting(Uint8List fileBytes) async {
@@ -294,7 +343,12 @@ class PdfService {
   static Future<Uint8List> removePassword(
     Uint8List fileBytes,
     String password,
+  ) => compute(_removePasswordIsolate, (fileBytes, password));
+
+  static Future<Uint8List> _removePasswordIsolate(
+    (Uint8List, String) args,
   ) async {
+    final (fileBytes, password) = args;
     late final PdfDocument doc;
     try {
       doc = PdfDocument(inputBytes: fileBytes, password: password);

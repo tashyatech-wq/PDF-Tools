@@ -8,6 +8,7 @@ import '../services/app_open_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
+import '../widgets/busy_dialog.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 import '../widgets/saved_files_picker.dart';
@@ -82,13 +83,22 @@ class _UnlockScreenState extends State<UnlockScreen> {
       _successMessage = null;
     });
     try {
-      final out = await PdfService.removePassword(_bytes!, _passwordCtrl.text);
+      final out = await runBusy<Uint8List>(
+        context,
+        message: 'Removing password…',
+        action: (_) => PdfService.removePassword(_bytes!, _passwordCtrl.text),
+      );
       final baseName = (_name ?? 'file.pdf').replaceAll(
         RegExp(r'\.pdf$', caseSensitive: false),
         '',
       );
       final outName = '$baseName-unlocked.pdf';
-      await saveAndExport(out, outName);
+      if (!mounted) return;
+      await runBusy<void>(
+        context,
+        message: 'Saving…',
+        action: (_) => saveAndExport(out, outName),
+      );
       setState(
         () => _successMessage =
             'Password removed — ${formatBytes(out.length)}. Saved in Saved.',

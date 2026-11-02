@@ -8,6 +8,7 @@ import '../services/app_open_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/save_file.dart';
+import '../widgets/busy_dialog.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 import '../widgets/saved_files_picker.dart';
@@ -30,7 +31,6 @@ class _SplitScreenState extends State<SplitScreen> {
   final _toCtrl = TextEditingController(text: '1');
 
   bool _working = false;
-  double _progress = 0;
   String? _error;
   String? _successMessage;
 
@@ -86,7 +86,6 @@ class _SplitScreenState extends State<SplitScreen> {
     if (_bytes == null) return;
     setState(() {
       _working = true;
-      _progress = 0;
       _error = null;
       _successMessage = null;
     });
@@ -94,28 +93,42 @@ class _SplitScreenState extends State<SplitScreen> {
       if (_mode == _SplitMode.range) {
         final from = int.tryParse(_fromCtrl.text) ?? 1;
         final to = int.tryParse(_toCtrl.text) ?? _pageCount;
-        final bytes = await PdfService.extractRange(
-          _bytes!,
-          from: from,
-          to: to,
+        final bytes = await runBusy<Uint8List>(
+          context,
+          message: 'Extracting pages…',
+          action: (_) => PdfService.extractRange(_bytes!, from: from, to: to),
         );
-        await saveAndExport(bytes, 'pages-$from-$to.pdf');
+        if (!mounted) return;
+        await runBusy<void>(
+          context,
+          message: 'Saving…',
+          action: (_) => saveAndExport(bytes, 'pages-$from-$to.pdf'),
+        );
         setState(
           () => _successMessage =
               'Pages extracted — ${formatBytes(bytes.length)}. Saved in Saved.',
         );
         InterstitialAdService.instance.showAfterExport();
       } else {
-        final pages = await PdfService.splitEveryPage(
-          _bytes!,
-          onPage: (done, total) => setState(() => _progress = done / total),
+        final pages = await runBusy<List<Uint8List>>(
+          context,
+          message: 'Splitting pages…',
+          action: (_) => PdfService.splitEveryPage(_bytes!),
         );
         // One "Save As" dialog per page would mean N confirmations in a
         // row for an N-page PDF -- these stay in the app's own library
         // instead; the Saved tab's Share button covers sending them on.
-        for (int i = 0; i < pages.length; i++) {
-          await savePdfFile(pages[i], 'page-${i + 1}.pdf');
-        }
+        if (!mounted) return;
+        await runBusy<void>(
+          context,
+          message: 'Saving pages…',
+          action: (busy) async {
+            for (int i = 0; i < pages.length; i++) {
+              busy.value = 'Saving page ${i + 1} of ${pages.length}';
+              await savePdfFile(pages[i], 'page-${i + 1}.pdf');
+            }
+          },
+        );
         setState(
           () => _successMessage =
               '${pages.length} pages saved as separate files in Saved.',
@@ -212,14 +225,6 @@ class _SplitScreenState extends State<SplitScreen> {
                           : 'Split every page',
                     ),
             ),
-            if (_working && _mode == _SplitMode.every) ...[
-              const SizedBox(height: 10),
-              LinearProgressIndicator(
-                value: _progress,
-                minHeight: 5,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ],
           ],
           if (_successMessage != null) SuccessCard(message: _successMessage!),
           if (_error != null) ErrorCard(message: _error!),

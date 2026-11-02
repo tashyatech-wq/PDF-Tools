@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../services/save_file.dart';
-import '../widgets/ad_mob_banner.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   const PdfPreviewScreen({super.key, required this.file});
@@ -47,8 +46,11 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
           ),
         ],
       ),
+      // No banner ad here: a saved file's own content is the whole point of
+      // this screen, and stacking the ad's native view with pdfx's native
+      // PDF-renderer view is also what was causing the preview to render
+      // blank on some devices (two platform views on "legacy" compositing).
       body: PdfView(controller: _controller),
-      bottomNavigationBar: const AdMobBanner(),
     );
   }
 }

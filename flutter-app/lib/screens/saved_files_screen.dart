@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../services/app_open_ad_service.dart';
 import '../services/save_file.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
@@ -15,130 +16,157 @@ class SavedFilesScreen extends StatefulWidget {
 }
 
 class _SavedFilesScreenState extends State<SavedFilesScreen> {
-  late Future<List<SavedPdfFile>> _files;
+  List<SavedPdfFile>? _files;
 
   @override
   void initState() {
     super.initState();
-    _files = savedPdfFiles();
+    _load();
   }
 
-  void _reload() {
-    setState(() => _files = savedPdfFiles());
+  Future<void> _load() async {
+    final files = await savedPdfFiles();
+    if (!mounted) return;
+    setState(() => _files = files);
   }
 
+  // Removes [file] from the visible list immediately, rather than waiting
+  // on a full re-fetch (and the loading spinner that would briefly replace
+  // the *whole* list while it ran): that made a successful delete look like
+  // it had done nothing, and tapping delete on a different row during that
+  // window -- once the list had reflowed under it -- could remove the
+  // wrong file entirely. A SnackBar confirms which file is actually gone.
   Future<void> _delete(SavedPdfFile file) async {
+    setState(() => _files?.removeWhere((f) => f.id == file.id));
     await deleteSavedPdf(file);
-    _reload();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('Deleted ${file.name}')));
   }
 
+  // See the matching comment on _open below: the native Save As picker is
+  // a separate activity too, so returning from it would otherwise be
+  // mistaken for the user coming back from elsewhere and get a full-screen
+  // ad thrown over the picker -- which was also swallowing the save itself.
   Future<void> _export(SavedPdfFile file) async {
-    final bytes = await File(file.path).readAsBytes();
-    await exportPdfToDevice(bytes, file.name);
+    AppOpenAdService.instance.suppressNextResume();
+    try {
+      final bytes = await File(file.path).readAsBytes();
+      await exportPdfToDevice(bytes, file.name);
+    } finally {
+      AppOpenAdService.instance.clearSuppression();
+    }
+  }
+
+  // pdfx's native PDF renderer briefly pauses/resumes the activity on some
+  // devices when it opens, which AppOpenAdService otherwise reads as the
+  // user returning from elsewhere and covers the preview with a full-screen
+  // ad right as it appears. Same suppression used around the file picker
+  // and scanner in the other screens.
+  Future<void> _open(BuildContext context, SavedPdfFile file) async {
+    AppOpenAdService.instance.suppressNextResume();
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => PdfPreviewScreen(file: file)),
+      );
+    } finally {
+      AppOpenAdService.instance.clearSuppression();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<SavedPdfFile>>(
-      future: _files,
-      builder: (context, snapshot) {
-        final files = snapshot.data ?? [];
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final files = _files;
+    if (files == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        if (files.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: () async => _reload(),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 36, 18, 26),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Theme.of(context).dividerColor
-                          .withValues(alpha: 0.7),
+    if (files.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 36, 18, 26),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.7),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(
+                      Icons.folder_open_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28,
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary
-                              .withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Icon(
-                          Icons.folder_open_rounded,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'No saved files yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Finished PDFs will appear here after merge, split, compress, or unlock.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          color: Theme.of(context).hintColor,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 14),
+                  const Text(
+                    'No saved files yet',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                   ),
-                ),
-                const NativeSavedFilesAd(),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    'Finished PDFs will appear here after merge, split, compress, or unlock.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: Theme.of(context).hintColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          );
-        }
+            const NativeSavedFilesAd(),
+          ],
+        ),
+      );
+    }
 
-        final adIndex = files.length > 1 ? 1 : files.length;
-        return RefreshIndicator(
-          onRefresh: () async => _reload(),
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 26),
-            itemCount: files.length + 1,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              if (index == adIndex) {
-                return const NativeSavedFilesAd();
-              }
-              final fileIndex = index > adIndex ? index - 1 : index;
-              final file = files[fileIndex];
-              return _SavedFileTile(
-                file: file,
-                onOpen: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PdfPreviewScreen(file: file),
-                  ),
-                ),
-                onShare: () => shareSavedPdf(file),
-                onExport: () => _export(file),
-                onDelete: () => _delete(file),
-              );
-            },
-          ),
-        );
-      },
+    final adIndex = files.length > 1 ? 1 : files.length;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 26),
+        itemCount: files.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          if (index == adIndex) {
+            return const NativeSavedFilesAd();
+          }
+          final fileIndex = index > adIndex ? index - 1 : index;
+          final file = files[fileIndex];
+          return _SavedFileTile(
+            key: ValueKey(file.id),
+            file: file,
+            onOpen: () => _open(context, file),
+            onShare: () => shareSavedPdf(file),
+            onExport: () => _export(file),
+            onDelete: () => _delete(file),
+          );
+        },
+      ),
     );
   }
 }
 
 class _SavedFileTile extends StatelessWidget {
   const _SavedFileTile({
+    super.key,
     required this.file,
     required this.onOpen,
     required this.onShare,

@@ -9,6 +9,7 @@ import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart
 import '../services/app_open_ad_service.dart';
 import '../services/pdf_service.dart';
 import '../services/save_file.dart';
+import '../widgets/busy_dialog.dart';
 import '../widgets/native_tool_ad.dart';
 import '../widgets/result_cards.dart';
 
@@ -121,7 +122,11 @@ class _ScanScreenState extends State<ScanScreen> {
     // whatever name the user chooses there over to this app's own Saved
     // tab entry, so the two copies don't end up confusingly named
     // differently.
-    final saved = await saveAndExport(scan.bytes, 'scan-${_timestamp()}.pdf');
+    final saved = await runBusy<SavedPdfFile>(
+      context,
+      message: 'Saving…',
+      action: (_) => saveAndExport(scan.bytes, 'scan-${_timestamp()}.pdf'),
+    );
     await _cleanScannerCache();
     if (!mounted) return;
 

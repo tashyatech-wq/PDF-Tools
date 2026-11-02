@@ -21,21 +21,31 @@ class SavedPdfFile {
   final int size;
   final DateTime createdAt;
 
+  /// Only the file's own name is persisted -- [path] is rebuilt from the
+  /// *current* saved-pdfs directory every time instead. The sandbox
+  /// container this app lives in (which an absolute path bakes in) isn't
+  /// guaranteed stable across a reinstall, an offload-and-reinstall, or a
+  /// backup restore; storing the old absolute path verbatim would make
+  /// `File(item.path).existsSync()` in [savedPdfFiles] false for every
+  /// entry after that happens, silently dropping the whole library from
+  /// the Saved tab even though the files are still on disk.
   Map<String, Object> toJson() => {
     'id': id,
     'name': name,
-    'path': path,
     'size': size,
     'createdAt': createdAt.toIso8601String(),
   };
 
-  static SavedPdfFile fromJson(Map<String, Object?> json) => SavedPdfFile(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    path: json['path'] as String,
-    size: json['size'] as int,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-  );
+  static SavedPdfFile fromJson(Map<String, Object?> json, String dirPath) {
+    final name = json['name'] as String;
+    return SavedPdfFile(
+      id: json['id'] as String,
+      name: name,
+      path: '$dirPath/$name',
+      size: json['size'] as int,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
 }
 
 Future<Directory> _savedPdfDirectory() async {
@@ -75,6 +85,7 @@ Future<String> _uniquePath(Directory dir, String filename) async {
 }
 
 Future<List<SavedPdfFile>> savedPdfFiles() async {
+  final dir = await _savedPdfDirectory();
   final index = await _indexFile();
   if (!await index.exists()) return [];
 
@@ -84,7 +95,10 @@ Future<List<SavedPdfFile>> savedPdfFiles() async {
   final decoded = jsonDecode(raw) as List<dynamic>;
   final files =
       decoded
-          .map((item) => SavedPdfFile.fromJson(item as Map<String, Object?>))
+          .map(
+            (item) =>
+                SavedPdfFile.fromJson(item as Map<String, Object?>, dir.path),
+          )
           .where((item) => File(item.path).existsSync())
           .toList()
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
