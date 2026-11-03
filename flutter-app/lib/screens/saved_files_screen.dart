@@ -38,11 +38,17 @@ class _SavedFilesScreenState extends State<SavedFilesScreen> {
   // wrong file entirely. A SnackBar confirms which file is actually gone.
   Future<void> _delete(SavedPdfFile file) async {
     setState(() => _files?.removeWhere((f) => f.id == file.id));
-    await deleteSavedPdf(file);
+    final exportDeleted = await deleteSavedPdf(file);
     if (!mounted) return;
+    final message = switch (exportDeleted) {
+      null => 'Deleted ${file.name}',
+      true => 'Deleted ${file.name} (and your saved copy of it)',
+      false => 'Deleted ${file.name} from Saved — couldn\'t remove your '
+          'saved copy of it, that one needs deleting by hand',
+    };
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('Deleted ${file.name}')));
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   // See the matching comment on _open below: the native Save As picker is
