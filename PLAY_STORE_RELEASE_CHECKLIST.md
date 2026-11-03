@@ -1,6 +1,6 @@
 # PDF Tools - Google Play Release Checklist
 
-Last updated: 2026-11-01
+Last updated: 2026-11-03
 
 ## Current App Status
 
@@ -19,10 +19,10 @@ Last updated: 2026-11-01
 
 ## Must Complete Before Play Store Upload
 
-- [ ] Create/configure a production Android upload keystore
-- [ ] Replace debug signing in `android/app/build.gradle.kts` with release signing
-- [ ] Build a production-signed Android App Bundle (`.aab`)
-- [ ] Verify target SDK meets current Google Play requirement
+- [x] Create/configure a production Android upload keystore (`android/app/upload-keystore.jks`, gitignored; alias `upload`, valid until 2054)
+- [x] Replace debug signing in `android/app/build.gradle.kts` with release signing (reads `android/key.properties`, gitignored, falls back to debug only when that file is absent)
+- [x] Build a production-signed Android App Bundle (`.aab`) — verified via `gradlew signingReport`, release variant now uses the `upload` key, not debug
+- [x] Verify target SDK meets current Google Play requirement (compileSdk/targetSdk 36, minSdk 24 — comfortably above Play's current minimum)
 - [ ] Increase `versionCode` for each future upload
 - [ ] Confirm app listing name, short description, full description
 - [ ] Add screenshots for required phone/tablet form factors
@@ -40,18 +40,24 @@ Last updated: 2026-11-01
 
 ## Current Blockers
 
-- Release signing is not production-ready. The project currently signs Android release builds with the debug key.
-- No upload keystore or `key.properties` exists in the Android project.
+- Play Console developer account is not yet approved, so nothing can actually be uploaded yet.
 - No Play Console service account / Fastlane / Play upload automation is configured in the repo.
 - I cannot upload to Play Store directly without Play Console access or a configured service account JSON with release permissions.
+- Camera is a hard device requirement in Play's eyes until `<uses-feature android:name="android.hardware.camera" android:required="false"/>` is added to `AndroidManifest.xml` (only the Scan tool needs a camera; the rest of the app doesn't).
+
+## CRITICAL: Back up the release keystore now
+
+- `android/app/upload-keystore.jks` and `android/key.properties` are gitignored on purpose (they hold the signing key and its passwords) — which also means **git will never back them up**.
+- If this keystore is lost, this app can never be updated again under this listing once it's published (a new listing would be a different app with zero reviews/installs carried over).
+- Copy both files somewhere durable and private right now: a password manager's file attachment, an encrypted drive, or a secure cloud folder — not just this machine.
 
 ## Latest Local Build
 
-- Command verified: `./gradlew :app:bundleRelease --info --stacktrace`
+- Command verified: `flutter build appbundle --release`
 - Result: build successful
 - Generated bundle: `flutter-app/build/app/outputs/bundle/release/app-release.aab`
-- Size: 57 MB
-- Important: this bundle is release-mode but debug-signed, so it should not be uploaded as the production Play Store artifact.
+- Size: 61.6 MB
+- Signing verified via `gradlew signingReport`: release variant signs with the `upload` key (SHA-256 `5A:EF:F7:51:62:AE:64:9F:9D:D8:69:6D:44:94:A6:0A:61:4C:C0:2A:1A:1E:C1:B9:AC:FD:1F:87:F4:2E:94:DE`), not debug. This bundle is safe to upload once the Play Console account is approved.
 
 ## Recommended Release Track
 

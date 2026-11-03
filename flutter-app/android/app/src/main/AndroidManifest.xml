@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Only the Scan tool needs a camera; merge/split/compress/unlock don't.
+         Without this, Play Store treats the camera as a hard device
+         requirement and hides the app from camera-less tablets/Chromebooks. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
     <application
         android:label="PDF Tools"

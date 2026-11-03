@@ -35,3 +35,4 @@
 *.p8
 *.p12
 *.mobileprovision
+key.properties
