@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../services/ad_mob_config.dart';
+import '../services/ad_remote_config.dart';
 
 class NativeToolAd extends StatelessWidget {
   const NativeToolAd({super.key});
@@ -61,7 +62,11 @@ class _NativeTemplateAdState extends State<_NativeTemplateAd> {
     }
 
     final adUnitId = widget.adUnitId;
-    if (!AdMobConfig.isSupportedPlatform || adUnitId == null) return;
+    if (!AdMobConfig.isSupportedPlatform ||
+        !AdRemoteConfig.nativeAdsEnabled ||
+        adUnitId == null) {
+      return;
+    }
 
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;

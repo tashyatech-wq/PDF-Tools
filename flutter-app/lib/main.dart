@@ -1,9 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'firebase_options.dart';
 import 'home_shell.dart';
 import 'services/ad_mob_config.dart';
+import 'services/ad_remote_config.dart';
 import 'services/app_open_ad_service.dart';
 import 'services/interstitial_ad_service.dart';
 import 'theme.dart';
@@ -12,6 +15,13 @@ import 'widgets/force_update_gate.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await AdRemoteConfig.init();
+  } catch (_) {
+    // Firebase unreachable (no network, misconfigured project) -- every ad
+    // placement stays off via AdRemoteConfig's defaults.
+  }
   if (AdMobConfig.isSupportedPlatform) {
     await MobileAds.instance.initialize();
     AppOpenAdService.instance.start();

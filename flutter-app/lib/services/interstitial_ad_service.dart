@@ -1,6 +1,7 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_mob_config.dart';
+import 'ad_remote_config.dart';
 
 class InterstitialAdService {
   InterstitialAdService._();
@@ -12,7 +13,12 @@ class InterstitialAdService {
   DateTime? _lastShownAt;
 
   void load() {
-    if (!AdMobConfig.isSupportedPlatform || _isLoading || _ad != null) return;
+    if (!AdMobConfig.isSupportedPlatform ||
+        !AdRemoteConfig.interstitialAdsEnabled ||
+        _isLoading ||
+        _ad != null) {
+      return;
+    }
     final adUnitId = AdMobConfig.interstitialAdUnitId;
     if (adUnitId == null) return;
 
@@ -46,7 +52,10 @@ class InterstitialAdService {
   }
 
   void showAfterExport() {
-    if (!AdMobConfig.isSupportedPlatform) return;
+    if (!AdMobConfig.isSupportedPlatform ||
+        !AdRemoteConfig.interstitialAdsEnabled) {
+      return;
+    }
 
     final now = DateTime.now();
     final lastShownAt = _lastShownAt;

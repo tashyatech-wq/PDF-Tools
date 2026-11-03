@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_mob_config.dart';
+import 'ad_remote_config.dart';
 
 class AppOpenAdService with WidgetsBindingObserver {
   AppOpenAdService._();
@@ -30,13 +31,18 @@ class AppOpenAdService with WidgetsBindingObserver {
   void clearSuppression() => _suppressed = false;
 
   void start() {
-    if (_started || !AdMobConfig.isSupportedPlatform) return;
+    if (_started ||
+        !AdMobConfig.isSupportedPlatform ||
+        !AdRemoteConfig.appOpenAdsEnabled) {
+      return;
+    }
     _started = true;
     WidgetsBinding.instance.addObserver(this);
     load();
   }
 
   void load() {
+    if (!AdRemoteConfig.appOpenAdsEnabled) return;
     final adUnitId = AdMobConfig.appOpenAdUnitId;
     if (adUnitId == null || _isLoading || _ad != null) return;
 
@@ -60,6 +66,7 @@ class AppOpenAdService with WidgetsBindingObserver {
   }
 
   void showIfAvailable() {
+    if (!AdRemoteConfig.appOpenAdsEnabled) return;
     final ad = _ad;
     if (_isShowing || ad == null) {
       load();

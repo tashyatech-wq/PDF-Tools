@@ -1,0 +1,26 @@
+{
+  "parameters": {
+    "show_banner_ads": {
+      "defaultValue": { "value": "false" },
+      "description": "Enable the bottom banner ad. Turn on once install volume justifies it.",
+      "valueType": "BOOLEAN"
+    },
+    "show_interstitial_ads": {
+      "defaultValue": { "value": "false" },
+      "description": "Enable the full-screen interstitial shown after export. Keep off until install base is established.",
+      "valueType": "BOOLEAN"
+    },
+    "show_native_ads": {
+      "defaultValue": { "value": "false" },
+      "description": "Enable native ads on tool screens and the saved-files list.",
+      "valueType": "BOOLEAN"
+    },
+    "show_app_open_ads": {
+      "defaultValue": { "value": "false" },
+      "description": "Enable the app-open ad shown when returning to the app from background.",
+      "valueType": "BOOLEAN"
+    }
+  },
+  "parameterGroups": {},
+  "version": {}
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../services/ad_mob_config.dart';
+import '../services/ad_remote_config.dart';
 
 class AdMobBanner extends StatefulWidget {
   const AdMobBanner({super.key});
@@ -17,6 +18,7 @@ class _AdMobBannerState extends State<AdMobBanner> {
   @override
   void initState() {
     super.initState();
+    if (!AdRemoteConfig.bannerAdsEnabled) return;
     final adUnitId = AdMobConfig.bannerAdUnitId;
     if (adUnitId == null) return;
 

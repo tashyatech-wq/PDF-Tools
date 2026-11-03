@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "797357776125",
+    "project_id": "pdf-tools-336ee",
+    "storage_bucket": "pdf-tools-336ee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797357776125:android:aa99a15633ffd903997294",
+        "android_client_info": {
+          "package_name": "in.tashyalabs.pdf_toolkit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtmSsZtK9QVe1CDFY9oixs0LWahDRHYJ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
