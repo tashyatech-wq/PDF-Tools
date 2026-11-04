@@ -1,53 +1,103 @@
 # PDF Tools — Play Store Listing Content (draft)
 
-Everything below is ready to paste into Play Console. Fill in the two
-`[ ... ]` placeholders (support email, privacy policy URL) before submitting.
+Everything below is ready to paste into Play Console.
+
+## Competitive positioning (ASO notes)
+
+Researched the live iLovePDF Play Store listing (`com.ilovepdf.www`) directly
+to ground this, not guessing:
+
+- **iLovePDF**: title `iLovePDF: PDF Editor & Scanner`, 10M+ downloads, 4.6★
+  from 355K reviews, Productivity category, has in-app purchases (auto-renewing
+  Premium subscription), collects Personal info + App activity + App info and
+  performance per their own Data safety section, ~15 tools (scanner, OCR,
+  converters, annotate, fill & sign, compress, merge, split, rotate,
+  protect, page numbers, watermark).
+- Their own short description line is literally **"PDF Tools. Sign, edit
+  and convert PDF"** — confirms "PDF Tools" is an unprotectable generic
+  term, not a trademark conflict for us.
+- **Reality check**: with 10M+ installs and 355K reviews, iLovePDF will
+  outrank us on any single generic keyword ("pdf editor", "pdf converter")
+  for a long time — that's an install-velocity and review-count problem,
+  not something listing copy alone fixes. ASO copy can only point search
+  traffic that's already using long-tail/specific-tool queries at us; it
+  can't win head-to-head on broad terms against an incumbent this size.
+- **Our real, honest differentiators** (don't name iLovePDF directly in
+  Play Store copy — Google's metadata policy disallows referencing
+  competitors by name in your own listing):
+  - Fully free, no subscription, no in-app purchases at all (one live
+    iLovePDF review in this research literally complains about confusing
+    subscription billing — "no subscription" is a genuine selling point).
+  - No account/sign-up required.
+  - All processing happens on-device — nothing uploaded, which iLovePDF's
+    own Data safety disclosure (collects Personal info + App activity)
+    doesn't match.
+  - Smaller, more focused tool set — faster to find the one thing you need.
+- **Keyword strategy**: pack the 30-char title with 2–3 high-intent tool
+  keywords so we rank for specific-tool searches (merge/split/scan) rather
+  than competing on saturated generic terms; use the short description for
+  *different* keywords (compress, unlock, offline, free, no sign-up) so the
+  combined title+short-description keyword coverage doesn't repeat itself.
 
 ## App details
 
-- **App name**: PDF Tools
+- **App name (Play Store listing title, max 30 characters)**:
+  ```
+  PDF Tools: Merge, Split & Scan
+  ```
+  (30 characters, exact fit — the app's home-screen label stays the
+  shorter "PDF Tools"; Play Console's "App name" field is the one that
+  carries this longer keyword-rich version and is normal, policy-allowed
+  practice.)
 - **Package name**: `in.tashyalabs.pdf_toolkit`
 - **Developer**: Tashya Labs Pvt Ltd
-- **Category**: Productivity (Tools is a reasonable alternate)
+- **Category**: Productivity (matches iLovePDF's category — that's where
+  this search traffic actually browses)
 - **Contains ads**: Yes
 - **In-app purchases**: No
 
 ## Short description (max 80 characters)
 
 ```
-Scan, merge, split, compress, and unlock PDFs — fast, free, on-device.
+Compress, unlock & organize PDFs offline. Free, no sign-up, no subscription.
 ```
-(71 characters)
+(76 characters — deliberately covers different keywords than the title:
+compress/unlock/offline/free/no sign-up/no subscription, so title + short
+description together cover more unique search terms instead of repeating
+"merge/split/scan" twice.)
 
 ## Full description (max 4000 characters)
 
 ```
-PDF Tools is a fast, no-frills PDF toolkit that handles the PDF jobs you run into every day — without uploading your files anywhere.
+PDF Tools is a fast, no-frills PDF toolkit for the PDF jobs you run into every day — scan, merge, split, compress, and unlock PDF files, all without uploading anything to a server.
+
+100% FREE. NO SIGN-UP. NO SUBSCRIPTION.
+No account, no premium paywall, no recurring billing — install it and use every tool, free.
 
 FEATURES
 
-📷 Scan to PDF
-Turn paper documents, receipts, or whiteboards into a clean PDF using your camera, with automatic edge detection.
+📷 Scan to PDF — PDF Scanner
+Turn paper documents, receipts, notes, or whiteboards into a clean PDF using your camera. Automatic edge detection turns any photo into a properly cropped page.
 
-🔗 Merge PDF
-Combine multiple PDFs into a single file, in the order you choose.
+🔗 Merge PDF — Combine PDF Files
+Use the PDF merger to combine multiple PDFs into a single file, in the order you choose. Perfect for putting scanned pages or separate reports together.
 
-✂️ Split PDF
-Pull specific pages out of a PDF, or split a large document into separate files.
+✂️ Split PDF — Extract PDF Pages
+Pull specific pages out of a PDF with the PDF splitter, or break a large document into separate files.
 
-🗜️ Compress PDF
-Shrink a PDF's file size so it's easier to email or upload, without losing readability.
+🗜️ Compress PDF — Reduce PDF File Size
+Shrink a PDF's file size with the PDF compressor so it's easier to email or upload, without losing readability.
 
-🔓 Unlock PDF
-Remove a known password from a protected PDF so you can open and edit it freely.
+🔓 Unlock PDF — Remove PDF Password
+Use the PDF password remover to take a known password off a protected PDF so you can open, edit, or share it freely.
 
-YOUR FILES, YOUR PHONE
-All PDF processing happens locally on your device. Your files are not uploaded to any server to perform these operations.
+YOUR FILES NEVER LEAVE YOUR PHONE
+Every PDF operation above — scanning, merging, splitting, compressing, unlocking — runs entirely on your device. Nothing is uploaded to any server to do the work.
 
 SIMPLE, FOCUSED DESIGN
-No clutter, no sign-up, no subscription. Open the tool you need, pick your file, done — and every processed file is saved in one place so you can find it again.
+No clutter, no clunky menus. Open the tool you need, pick your file, done — and every processed file is saved in one place (the Saved tab) so you can find it again later.
 
-PDF Tools is supported by ads to keep the app free for everyone.
+PDF Tools is supported by ads to stay free for everyone, with no subscription and no in-app purchases.
 
 Questions or feedback? Reach us at tashya.tech@gmail.com.
 ```
@@ -103,12 +153,9 @@ Questions about this policy can be sent to tashya.tech@gmail.com.
 
 ### Hosting the privacy policy
 
-Pick one — I can set either of these up:
-1. **GitHub Pages** (free, uses this repo) — I publish the text above as a
-   page at `https://tashyatech-wq.github.io/PDF-Tools/privacy-policy.html`
-   and enable Pages on the repo. Takes a few minutes, no cost.
-2. **Your own site**, if Tashya Labs already has one — tell me the domain
-   and I'll hand you a ready-to-upload HTML file instead.
+Live at **https://tashyatech-wq.github.io/PDF-Tools/privacy-policy.html**
+via GitHub Pages (served from `docs/privacy-policy.html` on `main`, free).
+Paste that URL into Play Console → Policy → App content → Privacy policy.
 
 ## Data safety form answers (Play Console → App content → Data safety)
 

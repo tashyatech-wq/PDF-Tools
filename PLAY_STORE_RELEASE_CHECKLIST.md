@@ -30,7 +30,7 @@ rating answers are in [PLAY_STORE_LISTING.md](PLAY_STORE_LISTING.md).
 - [x] App listing name, short description, full description drafted — see `PLAY_STORE_LISTING.md`
 - [ ] Add screenshots for required phone/tablet form factors
 - [ ] Add feature graphic if Play Console requests it
-- [ ] Add privacy policy URL (text drafted in `PLAY_STORE_LISTING.md`; needs hosting + your support email filled in)
+- [x] Privacy policy live at https://tashyatech-wq.github.io/PDF-Tools/privacy-policy.html (GitHub Pages, served from `docs/`)
 - [x] Data safety form answers drafted — see `PLAY_STORE_LISTING.md`
 - [x] Declare "Contains ads" — confirmed Yes in the draft listing
 - [ ] Complete App content declarations (uses the drafted answers in Play Console)
