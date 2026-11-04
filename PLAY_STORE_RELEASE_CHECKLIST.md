@@ -28,8 +28,10 @@ rating answers are in [PLAY_STORE_LISTING.md](PLAY_STORE_LISTING.md).
 - [x] Verify target SDK meets current Google Play requirement (compileSdk/targetSdk 36, minSdk 24 — comfortably above Play's current minimum)
 - [x] `versionCode` is `1` (`pubspec.yaml` version `1.0.0+1`) — fine as-is for this first upload; bump it for every future release
 - [x] App listing name, short description, full description drafted — see `PLAY_STORE_LISTING.md`
-- [ ] Add screenshots for required phone/tablet form factors
+- [x] Screenshots captured from a real signed-release install — see `store-assets/screenshots/phone/`
+- [x] App icon (512x512) ready for Play Console's Main store listing → App icon field — see `store-assets/icon/play-store-icon-512.png`
 - [ ] Add feature graphic if Play Console requests it
+- [x] Verified end-to-end: Internal testing opt-in link → install → launch works (confirmed via `installerPackageName=com.android.vending`, genuine Play Store install, not sideload). The generic robot icon and "(unreviewed)" app name shown to testers right now is expected Play behavior until the store listing (name, icon, etc.) is completed — not a bug.
 - [x] Privacy policy live at https://tashyatech-wq.github.io/PDF-Tools/privacy-policy.html (GitHub Pages, served from `docs/`)
 - [x] Data safety form answers drafted — see `PLAY_STORE_LISTING.md`
 - [x] Declare "Contains ads" — confirmed Yes in the draft listing
