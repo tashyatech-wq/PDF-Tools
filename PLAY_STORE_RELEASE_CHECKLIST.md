@@ -44,10 +44,18 @@ rating answers are in [PLAY_STORE_LISTING.md](PLAY_STORE_LISTING.md).
 ## Current Blockers
 
 - Play Console developer account is now approved (confirmed 2026-11-04).
-- Keystore backup still **unconfirmed** — see the CRITICAL section below.
-- Privacy policy still needs a hosting URL and your support email filled in before it can be submitted.
-- Screenshots and feature graphic still need to be produced.
+- Feature graphic still needs to be produced (4 phone screenshots already captured — see `store-assets/screenshots/phone/`).
+- Developer-account-level fields (legal name/address, contact info, payment methods, package name registration under Android Developer Verification) still need to be confirmed/completed by you directly in Play Console — see "Play Console Requirements compliance" below.
 - No Play Console service account / Fastlane / Play upload automation is configured in the repo — the actual upload to Play Console has to be done by you through the console UI; I can't upload on your behalf.
+
+## Play Console Requirements compliance (reviewed 2026-11-04)
+
+Checked against https://support.google.com/googleplay/android-developer/answer/10788890 —
+- [x] App has no login/account system at all (confirmed in code) — answer "No" to "does your app require a login", no demo account needed.
+- [x] Not a financial/health/VPN/government app — a Personal developer account is fine, Organization registration not required.
+- [x] Only third-party SDKs are Google Mobile Ads (disclosed in Data safety) and Firebase Core/Remote Config (app config only, not user data collection — no separate Data safety entry needed).
+- [ ] Still needs to be done by you in Play Console itself (account-level — legal name/address, financial/identity info, not something I can touch): confirm developer account legal name/address, contact email/phone, payment methods, and Google payment profile are accurate, and register the app's package name under Android Developer Verification.
+- Not applicable: the Account Transfer section of that same policy page — you're not transferring the account.
 
 ## Release keystore backup
 
