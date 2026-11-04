@@ -30,7 +30,7 @@ rating answers are in [PLAY_STORE_LISTING.md](PLAY_STORE_LISTING.md).
 - [x] App listing name, short description, full description drafted — see `PLAY_STORE_LISTING.md`
 - [x] Screenshots captured from a real signed-release install — see `store-assets/screenshots/phone/`
 - [x] App icon (512x512) ready for Play Console's Main store listing → App icon field — see `store-assets/icon/play-store-icon-512.png`
-- [ ] Add feature graphic if Play Console requests it
+- [x] Feature graphic (1024x500) generated from the app's icon and brand colors — see `store-assets/feature-graphic/feature-graphic-1024x500.png`
 - [x] Verified end-to-end: Internal testing opt-in link → install → launch works (confirmed via `installerPackageName=com.android.vending`, genuine Play Store install, not sideload). The generic robot icon and "(unreviewed)" app name shown to testers right now is expected Play behavior until the store listing (name, icon, etc.) is completed — not a bug.
 - [x] Privacy policy live at https://tashyatech-wq.github.io/PDF-Tools/privacy-policy.html (GitHub Pages, served from `docs/`)
 - [x] Data safety form answers drafted — see `PLAY_STORE_LISTING.md`
