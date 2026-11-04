@@ -57,6 +57,13 @@ Checked against https://support.google.com/googleplay/android-developer/answer/1
 - [ ] Still needs to be done by you in Play Console itself (account-level — legal name/address, financial/identity info, not something I can touch): confirm developer account legal name/address, contact email/phone, payment methods, and Google payment profile are accurate, and register the app's package name under Android Developer Verification.
 - Not applicable: the Account Transfer section of that same policy page — you're not transferring the account.
 
+### Android Developer Verification (https://developer.android.com/developer-verification)
+
+- Separate, newer program (enforcement starts 2026-09-30 for Brazil/Indonesia/Singapore/Thailand on certified Android 7+ devices, global rollout 2027) requiring a verified real-world identity behind every installable app.
+- **Confirmed from Google's own FAQ: this is automatic for us.** "If you use Play App Signing, we have the necessary information to securely identify your ownership. Your eligible apps will be part of the automatic registration process." Play App Signing is the default/required signing path for App Bundle (`.aab`) uploads, which is exactly what we're uploading — so no extra registration step for an app distributed only through Google Play.
+- One thing to check yourself after the first upload: Play Console → Setup → **Android developer verification** page shows this app's registration status directly (should read "Registered" once Play App Signing is confirmed during upload).
+- Not relevant to us: the separate Android Developer Console / package-name-registration flow — that's only for apps distributed *outside* Google Play (sideloading, other stores), which this app isn't.
+
 ## Release keystore backup
 
 - `android/app/upload-keystore.jks` and `android/key.properties` are gitignored on purpose (they hold the signing key and its passwords) — git will never back them up.
