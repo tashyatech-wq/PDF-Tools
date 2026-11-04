@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'screens/compress_screen.dart';
 import 'screens/merge_screen.dart';
@@ -517,6 +518,24 @@ class _HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const NativeToolAd(),
+          const SizedBox(height: 18),
+          Center(
+            child: TextButton(
+              onPressed: () => launchUrl(
+                Uri.parse(
+                  'https://tashyatech-wq.github.io/PDF-Tools/privacy-policy.html',
+                ),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: Text(
+                'Privacy Policy',
+                style: TextStyle(
+                  color: Theme.of(context).hintColor,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
